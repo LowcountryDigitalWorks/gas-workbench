@@ -1,35 +1,38 @@
-name: Bootstrap lockfile
+name: Workbench CI
 
 on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches:
-      - foundation/wb-boot-001
-    paths:
-      - package.json
-      - .github/workflows/bootstrap-lockfile.yml
+    branches: [main]
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: workbench-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lockfile:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
-      - name: Generate exact lockfile
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Commit generated lockfile
-        shell: bash
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck, lint, test, and build
+        run: npm run check
+      - name: Audit locked dependencies
+        run: npm audit
+      - name: Verify patch whitespace and tracked files
         run: |
-          if [[ -z "$(git status --porcelain -- package-lock.json)" ]]; then
-            echo "package-lock.json already matches package.json"
-            exit 0
-          fi
-          git add package-lock.json
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'chore: generate package lock'
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git diff --check
+          git diff --exit-code
