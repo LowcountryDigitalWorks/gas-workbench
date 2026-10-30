@@ -237,6 +237,10 @@
   .boundary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .next-slice {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 48rem) {
@@ -260,8 +264,7 @@
     flex-direction: column;
   }
 
-  .boundary-grid,
-  .next-slice {
+  .boundary-grid {
     grid-template-columns: 1fr;
   }
 }
