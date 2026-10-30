@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "ldw.gas-workbench-projection.v1",
+  "schemaMinorVersion": 0,
+  "source": {
+    "product": "gas-engine",
+    "artifact": "operator-workspace",
+    "artifactVersion": "0.17.0",
+    "workspaceId": "workspace:synthetic-human-review-001"
+  },
+  "workspace": {
+    "scope": {
+      "tenantId": "tenant:synthetic-ldw",
+      "siteId": "site:harbor-demo",
+      "siteScopeRevisionId": "scope-revision:human-review-001"
+    },
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-10-30T14:10:00Z",
+    "evaluatedAt": "2026-10-30T14:10:00Z",
+    "readiness": [
+      {
+        "moduleId": "search_analytics",
+        "state": "ready",
+        "reasons": []
+      },
+      {
+        "moduleId": "page_focus",
+        "state": "ready",
+        "reasons": []
+      }
+    ],
+    "sourceManifest": [
+      {
+        "moduleId": "search_analytics",
+        "release": "0.10.0",
+        "identity": "synthetic:search-window:human-review",
+        "providerIds": ["google-search-console"],
+        "sourcePeriods": [
+          { "start": "2026-10-01", "end": "2026-10-28" }
+        ],
+        "readiness": "ready",
+        "reasons": []
+      },
+      {
+        "moduleId": "page_focus",
+        "release": "0.12.0",
+        "identity": "synthetic:page-focus:services",
+        "providerIds": ["google-search-console"],
+        "sourcePeriods": [
+          { "start": "2026-10-01", "end": "2026-10-28" }
+        ],
+        "readiness": "ready",
+        "reasons": []
+      }
+    ],
+    "evidenceRows": [
+      {
+        "id": "evidence:page-focus:services",
+        "moduleId": "page_focus",
+        "kind": "page_focus_candidate",
+        "state": "candidate",
+        "evidenceIdentity": "synthetic:page-focus:services",
+        "providerIds": ["google-search-console"],
+        "url": "https://harbor-demo.example/services",
+        "query": "coastal web design",
+        "readinessContext": [
+          "The candidate is evidence for human review and is not an automatic recommendation."
+        ]
+      }
+    ],
+    "attention": [
+      {
+        "id": "attention:page-focus:services",
+        "navigationOrder": 0,
+        "moduleId": "page_focus",
+        "originalKind": "page_focus_candidate",
+        "originalState": "candidate",
+        "evidenceIdentity": "synthetic:page-focus:services",
+        "identity": {
+          "url": "https://harbor-demo.example/services",
+          "query": "coastal web design"
+        },
+        "readinessContext": [
+          "Human review is required before any recommendation or action."
+        ]
+      }
+    ],
+    "decisionCycle": {
+      "readiness": {
+        "state": "recommendation_not_created",
+        "reasons": [
+          "A human selected the Attention item for investigation but has not created a recommendation."
+        ]
+      },
+      "decision": {
+        "id": "decision:synthetic-investigate-services",
+        "disposition": "investigate",
+        "summary": "Review whether the services page represents the observed query family before proposing any change.",
+        "recordedAt": "2026-10-30T14:09:00Z",
+        "selectedAttentionIds": ["attention:page-focus:services"],
+        "references": [
+          {
+            "kind": "url",
+            "value": "https://harbor-demo.example/services"
+          },
+          {
+            "kind": "query",
+            "value": "coastal web design"
+          }
+        ]
+      }
+    },
+    "timeline": [
+      {
+        "kind": "service_brief",
+        "at": "2026-10-30T14:00:00Z",
+        "label": "Release 0.15 service brief generated",
+        "state": "generated",
+        "referenceId": "service-brief:synthetic-human-review"
+      }
+    ],
+    "navigation": {
+      "overview": {
+        "attentionCount": 1,
+        "exactUrlCount": 1,
+        "readinessCount": 2,
+        "limitationCount": 2,
+        "evidenceStateCounts": [
+          { "state": "candidate", "count": 1 }
+        ]
+      },
+      "evidence": {
+        "rowCount": 1,
+        "sourceCount": 2
+      },
+      "attention": {
+        "rowCount": 1,
+        "semantics": "human_review_selection_not_priority"
+      },
+      "decisionCycle": {
+        "supplied": true,
+        "readiness": "recommendation_not_created",
+        "recordedMeasurementCount": 0,
+        "humanOutcomeCount": 0
+      },
+      "history": {
+        "timelineCount": 1
+      },
+      "reports": {
+        "maximumPrimaryItems": 3
+      }
+    },
+    "authorityNotes": [
+      "The human decision is application-local review state and does not authorize a production change."
+    ],
+    "limitations": [
+      "Attention selection is not a G.A.S. priority or business-impact ranking.",
+      "No measurement or outcome has been recorded, so no change-impact claim is supported."
+    ]
+  }
+}
