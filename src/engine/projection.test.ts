@@ -108,6 +108,17 @@ describe('Workbench engine projection boundary', () => {
     expectInvalidProjection(() => decodeWorkbenchProjection(invalid))
   })
 
+  it('rejects reordered Release 0.17 readiness modules', () => {
+    const invalid = structuredClone(quietFixture) as unknown as {
+      workspace: { readiness: Array<Record<string, unknown>> }
+    }
+    const [first, second] = invalid.workspace.readiness
+    invalid.workspace.readiness[0] = second!
+    invalid.workspace.readiness[1] = first!
+
+    expectInvalidProjection(() => decodeWorkbenchProjection(invalid))
+  })
+
   it('rejects navigation counts that contradict projected Attention and evidence rows', () => {
     const invalid = structuredClone(humanReviewFixture) as unknown as {
       workspace: {
@@ -173,6 +184,24 @@ describe('Workbench engine projection boundary', () => {
     invalid.workspace.sourceManifest[0]!.moduleId = 'evidence_diff'
     invalid.workspace.sourceManifest[0]!.readiness = 'not_supplied'
     invalid.workspace.sourceManifest[0]!.reasons = []
+
+    expectInvalidProjection(() => decodeWorkbenchProjection(invalid))
+  })
+
+  it('rejects a supplied module missing from the source manifest', () => {
+    const invalid = structuredClone(quietFixture) as unknown as {
+      workspace: { sourceManifest: Array<Record<string, unknown>> }
+    }
+    invalid.workspace.sourceManifest.pop()
+
+    expectInvalidProjection(() => decodeWorkbenchProjection(invalid))
+  })
+
+  it('rejects evidence providers that contradict the module source manifest', () => {
+    const invalid = structuredClone(humanReviewFixture) as unknown as {
+      workspace: { evidenceRows: Array<{ providerIds: string[] }> }
+    }
+    invalid.workspace.evidenceRows[0]!.providerIds = ['different-provider']
 
     expectInvalidProjection(() => decodeWorkbenchProjection(invalid))
   })
