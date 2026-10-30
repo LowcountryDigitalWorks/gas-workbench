@@ -55,20 +55,21 @@ function validateRelease017Consistency(projection: WorkbenchProjection): void {
 
   const readinessModules = workspace.readiness.map((entry) => entry.moduleId)
   unique(readinessModules, 'Release 0.17 readiness module IDs')
-  if (
-    readinessModules.length !== RELEASE_017_READINESS_MODULES.length
-    || RELEASE_017_READINESS_MODULES.some((moduleId) => !readinessModules.includes(moduleId))
-  ) {
-    invalid('Release 0.17 readiness must contain exactly the seven accepted service-brief modules.')
+  if (!sameStrings(readinessModules, RELEASE_017_READINESS_MODULES)) {
+    invalid('Release 0.17 readiness must preserve the accepted seven-module service-brief order.')
   }
 
   const readinessByModule = new Map(
     workspace.readiness.map((entry) => [entry.moduleId, entry] as const),
   )
-  unique(
-    workspace.sourceManifest.map((entry) => entry.moduleId),
-    'Source-manifest module IDs',
-  )
+  const manifestModules = workspace.sourceManifest.map((entry) => entry.moduleId)
+  unique(manifestModules, 'Source-manifest module IDs')
+  const suppliedModules = workspace.readiness
+    .filter((entry) => entry.state !== 'not_supplied')
+    .map((entry) => entry.moduleId)
+  if (!sameStrings(manifestModules, suppliedModules)) {
+    invalid('Source manifest must correspond exactly to supplied Release 0.17 modules in module order.')
+  }
   for (const entry of workspace.sourceManifest) {
     const readiness = readinessByModule.get(entry.moduleId)
     if (readiness === undefined || readiness.state === 'not_supplied') {
@@ -85,6 +86,9 @@ function validateRelease017Consistency(projection: WorkbenchProjection): void {
     invalid('Release 0.17 evidence rows and Attention items must have the same cardinality.')
   }
   const evidenceById = new Map(workspace.evidenceRows.map((row) => [row.id, row] as const))
+  const providersByModule = new Map(
+    workspace.sourceManifest.map((entry) => [entry.moduleId, entry.providerIds] as const),
+  )
   for (const [index, item] of workspace.attention.entries()) {
     if (item.navigationOrder !== index + 1) {
       invalid('Attention navigationOrder must be contiguous and one-based.')
@@ -92,6 +96,10 @@ function validateRelease017Consistency(projection: WorkbenchProjection): void {
     const evidence = evidenceById.get(item.id)
     if (evidence === undefined || !sameEvidenceIdentity(evidence, item)) {
       invalid(`Evidence row does not faithfully project Attention item ${item.id}.`)
+    }
+    const expectedProviders = providersByModule.get(item.moduleId) ?? []
+    if (!sameStrings(evidence.providerIds, expectedProviders)) {
+      invalid(`Evidence-row providers must match source-manifest providers for ${item.moduleId}.`)
     }
   }
 
