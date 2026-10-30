@@ -26,7 +26,7 @@ jobs:
       - name: Commit generated lockfile
         shell: bash
         run: |
-          if git diff --quiet -- package-lock.json; then
+          if [[ -z "$(git status --porcelain -- package-lock.json)" ]]; then
             echo "package-lock.json already matches package.json"
             exit 0
           fi
