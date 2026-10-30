@@ -17,21 +17,18 @@
     "generatedAt": "2026-10-30T14:10:00Z",
     "evaluatedAt": "2026-10-30T14:10:00Z",
     "readiness": [
-      {
-        "moduleId": "search_analytics",
-        "state": "ready",
-        "reasons": []
-      },
-      {
-        "moduleId": "page_focus",
-        "state": "ready",
-        "reasons": []
-      }
+      { "moduleId": "evidence_diff", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "review_history", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "search_analytics", "state": "ready", "reasons": [] },
+      { "moduleId": "search_change", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "page_focus", "state": "ready", "reasons": [] },
+      { "moduleId": "discovery_diagnostics", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "ai_visibility", "state": "not_supplied", "reasons": [] }
     ],
     "sourceManifest": [
       {
         "moduleId": "search_analytics",
-        "release": "0.10.0",
+        "release": "0.10",
         "identity": "synthetic:search-window:human-review",
         "providerIds": ["google-search-console"],
         "sourcePeriods": [
@@ -42,7 +39,7 @@
       },
       {
         "moduleId": "page_focus",
-        "release": "0.12.0",
+        "release": "0.12",
         "identity": "synthetic:page-focus:services",
         "providerIds": ["google-search-console"],
         "sourcePeriods": [
@@ -54,57 +51,49 @@
     ],
     "evidenceRows": [
       {
-        "id": "evidence:page-focus:services",
+        "id": "attention:page-focus:services",
         "moduleId": "page_focus",
         "kind": "page_focus_candidate",
         "state": "candidate",
         "evidenceIdentity": "synthetic:page-focus:services",
         "providerIds": ["google-search-console"],
         "url": "https://harbor-demo.example/services",
-        "query": "coastal web design",
         "readinessContext": [
-          "The candidate is evidence for human review and is not an automatic recommendation."
+          "Separate SERP/result validation is required before any intent or content-architecture conclusion."
         ]
       }
     ],
     "attention": [
       {
         "id": "attention:page-focus:services",
-        "navigationOrder": 0,
+        "navigationOrder": 1,
         "moduleId": "page_focus",
         "originalKind": "page_focus_candidate",
         "originalState": "candidate",
         "evidenceIdentity": "synthetic:page-focus:services",
         "identity": {
-          "url": "https://harbor-demo.example/services",
-          "query": "coastal web design"
+          "url": "https://harbor-demo.example/services"
         },
         "readinessContext": [
-          "Human review is required before any recommendation or action."
+          "Separate SERP/result validation is required before any intent or content-architecture conclusion."
         ]
       }
     ],
     "decisionCycle": {
       "readiness": {
-        "state": "recommendation_not_created",
-        "reasons": [
-          "A human selected the Attention item for investigation but has not created a recommendation."
-        ]
+        "state": "measurement_not_planned",
+        "reasons": []
       },
       "decision": {
         "id": "decision:synthetic-investigate-services",
         "disposition": "investigate",
-        "summary": "Review whether the services page represents the observed query family before proposing any change.",
+        "summary": "Review whether the services page warrants a human-authored recommendation after separate result validation.",
         "recordedAt": "2026-10-30T14:09:00Z",
         "selectedAttentionIds": ["attention:page-focus:services"],
         "references": [
           {
             "kind": "url",
             "value": "https://harbor-demo.example/services"
-          },
-          {
-            "kind": "query",
-            "value": "coastal web design"
           }
         ]
       }
@@ -122,8 +111,8 @@
       "overview": {
         "attentionCount": 1,
         "exactUrlCount": 1,
-        "readinessCount": 2,
-        "limitationCount": 2,
+        "readinessCount": 7,
+        "limitationCount": 12,
         "evidenceStateCounts": [
           { "state": "candidate", "count": 1 }
         ]
@@ -138,23 +127,32 @@
       },
       "decisionCycle": {
         "supplied": true,
-        "readiness": "recommendation_not_created",
+        "readiness": "measurement_not_planned",
         "recordedMeasurementCount": 0,
         "humanOutcomeCount": 0
       },
-      "history": {
-        "timelineCount": 1
-      },
-      "reports": {
-        "maximumPrimaryItems": 3
-      }
+      "history": { "timelineCount": 1 },
+      "reports": { "maximumPrimaryItems": 3 }
     },
     "authorityNotes": [
-      "The human decision is application-local review state and does not authorize a production change."
+      "Trusted TenantContext is supplied outside the workspace/browser artifact.",
+      "Release 0.15 and Release 0.16 are recomputed from authoritative repositories.",
+      "No browser field, downloaded JSON, ID, hash, or presentation state creates tenant/site/scope authority.",
+      "Release 0.17 adds no production action authority beyond accepted Release 0.16 / Release 0.8 services."
     ],
     "limitations": [
-      "Attention selection is not a G.A.S. priority or business-impact ranking.",
-      "No measurement or outcome has been recorded, so no change-impact claim is supported."
+      "Module ordering and attention-register ordering are deterministic navigation only; they are not priority, severity, materiality, or business impact.",
+      "Exact-URL grouping means only that accepted records reference the same exact URL string; co-occurrence is not correlation or causation.",
+      "Missing, unknown, partial, unavailable, preliminary, filtered, truncated, or non-exhaustive evidence never becomes observed zero or proven absence unless the accepted producer explicitly establishes that state.",
+      "Human recommendation acceptance is non-executing. Human-declared outcome direction and attribution are preserved as recorded and are not recalculated by Release 0.15.",
+      "The service brief creates no recommendation, remediation, publishing, provider-write, or other production action authority.",
+      "Selected attention means only that a human chose to review an exact Release 0.15 attention item; selection is not a G.A.S. ranking.",
+      "Only exact Release 0.11 Search Analytics change evidence has an accepted measurement-plan methodology in this release.",
+      "The decision statement and dossier are application-local and are not persisted as a new canonical contract or table.",
+      "The dossier is deterministic read/composition output plus explicit accepted Release 0.8 write call-throughs; it is not a task manager, scheduler, action engine, experiment platform, or production mutation system.",
+      "Workspace filters and selection controls are presentation convenience only and do not change evidence semantics.",
+      "Human attention selection is not G.A.S. priority, severity, materiality, or business-impact ranking.",
+      "Browser-generated action/report artifacts are untrusted and require authoritative Node-side recomputation."
     ]
   }
 }
