@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "ldw.gas-workbench-projection.v1",
+  "schemaMinorVersion": 0,
+  "source": {
+    "product": "gas-engine",
+    "artifact": "operator-workspace",
+    "artifactVersion": "0.17.0",
+    "workspaceId": "workspace:synthetic-quiet-001"
+  },
+  "workspace": {
+    "scope": {
+      "tenantId": "tenant:synthetic-ldw",
+      "siteId": "site:harbor-demo",
+      "siteScopeRevisionId": "scope-revision:quiet-001"
+    },
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-10-30T14:00:00Z",
+    "evaluatedAt": "2026-10-30T14:00:00Z",
+    "readiness": [
+      {
+        "moduleId": "search_analytics",
+        "state": "ready",
+        "reasons": []
+      },
+      {
+        "moduleId": "ai_visibility",
+        "state": "ready",
+        "reasons": []
+      }
+    ],
+    "sourceManifest": [
+      {
+        "moduleId": "search_analytics",
+        "release": "0.10.0",
+        "identity": "synthetic:search-window:quiet",
+        "providerIds": ["google-search-console"],
+        "sourcePeriods": [
+          { "start": "2026-10-01", "end": "2026-10-28" }
+        ],
+        "readiness": "ready",
+        "reasons": []
+      },
+      {
+        "moduleId": "ai_visibility",
+        "release": "0.14.0",
+        "identity": "synthetic:ai-cohort:quiet",
+        "providerIds": ["bing", "zerorank"],
+        "sourcePeriods": [
+          { "start": "2026-10-01", "end": "2026-10-28" }
+        ],
+        "readiness": "ready",
+        "reasons": []
+      }
+    ],
+    "evidenceRows": [],
+    "attention": [],
+    "timeline": [
+      {
+        "kind": "service_brief",
+        "at": "2026-10-30T14:00:00Z",
+        "label": "Release 0.15 service brief generated",
+        "state": "generated",
+        "referenceId": "service-brief:synthetic-quiet"
+      }
+    ],
+    "navigation": {
+      "overview": {
+        "attentionCount": 0,
+        "exactUrlCount": 0,
+        "readinessCount": 2,
+        "limitationCount": 1,
+        "evidenceStateCounts": []
+      },
+      "evidence": {
+        "rowCount": 0,
+        "sourceCount": 2
+      },
+      "attention": {
+        "rowCount": 0,
+        "semantics": "human_review_selection_not_priority"
+      },
+      "decisionCycle": {
+        "supplied": false,
+        "recordedMeasurementCount": 0,
+        "humanOutcomeCount": 0
+      },
+      "history": {
+        "timelineCount": 1
+      },
+      "reports": {
+        "maximumPrimaryItems": 3
+      }
+    },
+    "authorityNotes": [
+      "Synthetic fixture only; no production action authority is represented."
+    ],
+    "limitations": [
+      "No Attention item is present in this adequately evidenced synthetic state; this is not a universal health score."
+    ]
+  }
+}
