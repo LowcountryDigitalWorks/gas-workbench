@@ -97,7 +97,10 @@ function validateRelease017Consistency(projection: WorkbenchProjection): void {
     if (evidence === undefined || !sameEvidenceIdentity(evidence, item)) {
       invalid(`Evidence row does not faithfully project Attention item ${item.id}.`)
     }
-    const expectedProviders = providersByModule.get(item.moduleId) ?? []
+    const expectedProviders = providersByModule.get(item.moduleId)
+    if (expectedProviders === undefined) {
+      invalid(`Evidence-bearing module ${item.moduleId} must have a source-manifest entry.`)
+    }
     if (!sameStrings(evidence.providerIds, expectedProviders)) {
       invalid(`Evidence-row providers must match source-manifest providers for ${item.moduleId}.`)
     }
