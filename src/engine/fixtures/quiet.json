@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "ldw.gas-workbench-projection.v1",
+  "schemaMinorVersion": 0,
+  "source": {
+    "product": "gas-engine",
+    "artifact": "operator-workspace",
+    "artifactVersion": "0.17.0",
+    "workspaceId": "workspace:synthetic-quiet-001"
+  },
+  "workspace": {
+    "scope": {
+      "tenantId": "tenant:synthetic-ldw",
+      "siteId": "site:harbor-demo",
+      "siteScopeRevisionId": "scope-revision:quiet-001"
+    },
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-10-30T14:00:00Z",
+    "evaluatedAt": "2026-10-30T14:00:00Z",
+    "readiness": [
+      { "moduleId": "evidence_diff", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "review_history", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "search_analytics", "state": "ready", "reasons": [] },
+      { "moduleId": "search_change", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "page_focus", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "discovery_diagnostics", "state": "not_supplied", "reasons": [] },
+      { "moduleId": "ai_visibility", "state": "ready", "reasons": [] }
+    ],
+    "sourceManifest": [
+      {
+        "moduleId": "search_analytics",
+        "release": "0.10",
+        "identity": "synthetic:search-window:quiet",
+        "providerIds": ["google-search-console"],
+        "sourcePeriods": [
+          { "start": "2026-10-01", "end": "2026-10-28" }
+        ],
+        "readiness": "ready",
+        "reasons": []
+      },
+      {
+        "moduleId": "ai_visibility",
+        "release": "0.14",
+        "identity": "synthetic:ai-cohort:quiet",
+        "providerIds": ["bing-webmaster-ai-performance", "zerorank"],
+        "sourcePeriods": [
+          { "start": "2026-10-01", "end": "2026-10-28" }
+        ],
+        "readiness": "ready",
+        "reasons": []
+      }
+    ],
+    "evidenceRows": [],
+    "attention": [],
+    "timeline": [
+      {
+        "kind": "service_brief",
+        "at": "2026-10-30T14:00:00Z",
+        "label": "Release 0.15 service brief generated",
+        "state": "generated",
+        "referenceId": "service-brief:synthetic-quiet"
+      }
+    ],
+    "navigation": {
+      "overview": {
+        "attentionCount": 0,
+        "exactUrlCount": 1,
+        "readinessCount": 7,
+        "limitationCount": 8,
+        "evidenceStateCounts": []
+      },
+      "evidence": {
+        "rowCount": 0,
+        "sourceCount": 2
+      },
+      "attention": {
+        "rowCount": 0,
+        "semantics": "human_review_selection_not_priority"
+      },
+      "decisionCycle": {
+        "supplied": false,
+        "recordedMeasurementCount": 0,
+        "humanOutcomeCount": 0
+      },
+      "history": { "timelineCount": 1 },
+      "reports": { "maximumPrimaryItems": 3 }
+    },
+    "authorityNotes": [
+      "Trusted TenantContext is supplied outside the workspace/browser artifact.",
+      "Release 0.15 and Release 0.16 are recomputed from authoritative repositories.",
+      "No browser field, downloaded JSON, ID, hash, or presentation state creates tenant/site/scope authority.",
+      "Release 0.17 adds no production action authority beyond accepted Release 0.16 / Release 0.8 services."
+    ],
+    "limitations": [
+      "Module ordering and attention-register ordering are deterministic navigation only; they are not priority, severity, materiality, or business impact.",
+      "Exact-URL grouping means only that accepted records reference the same exact URL string; co-occurrence is not correlation or causation.",
+      "Missing, unknown, partial, unavailable, preliminary, filtered, truncated, or non-exhaustive evidence never becomes observed zero or proven absence unless the accepted producer explicitly establishes that state.",
+      "Human recommendation acceptance is non-executing. Human-declared outcome direction and attribution are preserved as recorded and are not recalculated by Release 0.15.",
+      "The service brief creates no recommendation, remediation, publishing, provider-write, or other production action authority.",
+      "Workspace filters and selection controls are presentation convenience only and do not change evidence semantics.",
+      "Human attention selection is not G.A.S. priority, severity, materiality, or business-impact ranking.",
+      "Browser-generated action/report artifacts are untrusted and require authoritative Node-side recomputation."
+    ]
+  }
+}
