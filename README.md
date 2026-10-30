@@ -16,7 +16,7 @@ The first milestone is intentionally synthetic/public-safe. It does not connect 
 - npm 11.x
 - React 19
 - Vite 8
-- TypeScript 7
+- TypeScript 5.9
 - Vitest
 - ESLint
 
