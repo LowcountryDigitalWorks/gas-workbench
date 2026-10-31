@@ -1,4 +1,6 @@
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { LimitationsPanel } from './App'
 import { decodeScenario, workbenchScenarios } from './scenarios'
 
 describe('Workbench shell scenarios', () => {
@@ -41,6 +43,20 @@ describe('Workbench shell scenarios', () => {
       workspace.attention[0]?.id,
     ])
     expect(workspace.navigation.attention.semantics).toBe('human_review_selection_not_priority')
+  })
+
+  it('renders every supplied human-review limitation with native disclosure', () => {
+    const result = workbenchScenarios['human-review']
+    expect(result.status).toBe('ready')
+    if (result.status !== 'ready') return
+
+    const { limitations } = result.scenario.projection.workspace
+    const markup = renderToStaticMarkup(<LimitationsPanel limitations={limitations} />)
+
+    expect(markup).toContain('<details')
+    expect(markup).toContain('<summary>')
+    expect(markup.match(/<li/g)).toHaveLength(limitations.length)
+    expect(markup).toContain(`Show all ${limitations.length} supplied limitations`)
   })
 
   it('fails visibly when the projection boundary rejects an unsupported version', () => {
