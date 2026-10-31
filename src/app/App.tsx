@@ -22,7 +22,7 @@ const workspaceViews: readonly Readonly<{
   { id: 'home', label: 'Home', description: 'Current state and evidence gates' },
   { id: 'evidence', label: 'Evidence', description: 'Sources, provenance, and exact rows' },
   { id: 'attention', label: 'Attention', description: 'Unranked human-review selections' },
-  { id: 'decision', label: 'Decision', description: 'Supplied human decision context' },
+  { id: 'decision', label: 'Decision', description: 'Prepared request and supplied human state' },
 ]
 
 function displayToken(value: string): string {
@@ -158,7 +158,7 @@ function AttentionCard({
           View linked evidence
         </button>
         <button className="primary-button" type="button" onClick={onDecision}>
-          Open decision context
+          Prepare decision request
         </button>
       </div>
     </article>
@@ -252,6 +252,34 @@ export function LimitationsPanel({ limitations }: { readonly limitations: readon
         </details>
       ) : null}
     </div>
+  )
+}
+
+export function DecisionRequestCard({ attention }: { readonly attention: WorkbenchAttentionItem }) {
+  return (
+    <article className="decision-card">
+      <div className="card-heading-row">
+        <div>
+          <p className="eyebrow">Workbench preparation only</p>
+          <h3>Human decision request</h3>
+        </div>
+        <span className="status-pill state-neutral">not recorded</span>
+      </div>
+      <p className="decision-summary">
+        Carry this exact unranked Attention item into human review. This request does not record a
+        recommendation, decision, action, measurement, or outcome.
+      </p>
+      <dl className="metadata-list">
+        <div>
+          <dt>Attention reference</dt>
+          <dd className="mono-wrap">{attention.id}</dd>
+        </div>
+        <div>
+          <dt>Evidence identity</dt>
+          <dd className="mono-wrap">{attention.evidenceIdentity}</dd>
+        </div>
+      </dl>
+    </article>
   )
 }
 
@@ -509,45 +537,56 @@ export function App() {
               <div className="section-heading">
                 <div>
                   <p className="eyebrow">Decision</p>
-                  <h2 id="decision-title">Human decision context</h2>
+                  <h2 id="decision-title">Human decision handoff</h2>
                 </div>
-                <p>Displayed decision state is supplied by the engine projection; this shell creates no action authority.</p>
+                <p>Workbench preparation remains visually and semantically separate from supplied engine-recorded decision state.</p>
               </div>
 
-              {decisionCycle ? (
-                <div className="decision-layout">
-                  <article className="decision-card">
-                    <div className="card-heading-row">
-                      <div>
-                        <p className="eyebrow">{displayToken(decisionCycle.decision.disposition)}</p>
-                        <h3>Engine-recorded human decision</h3>
+              <div className="decision-layout">
+                <div className="evidence-list">
+                  {selectedAttention ? (
+                    <DecisionRequestCard attention={selectedAttention} />
+                  ) : (
+                    <EmptyState
+                      title="No Attention item is selected"
+                      detail="Workbench does not prepare a decision request without an exact supplied Attention reference."
+                    />
+                  )}
+
+                  {decisionCycle ? (
+                    <article className="decision-card">
+                      <div className="card-heading-row">
+                        <div>
+                          <p className="eyebrow">Supplied engine state · {displayToken(decisionCycle.decision.disposition)}</p>
+                          <h3>Engine-recorded human decision</h3>
+                        </div>
+                        <StatusPill state={decisionCycle.readiness.state} />
                       </div>
-                      <StatusPill state={decisionCycle.readiness.state} />
+                      <p className="decision-summary">{decisionCycle.decision.summary}</p>
+                      <dl className="metadata-list">
+                        <div>
+                          <dt>Decision ID</dt>
+                          <dd className="mono-wrap">{decisionCycle.decision.id}</dd>
+                        </div>
+                        <div>
+                          <dt>Recorded</dt>
+                          <dd>{displayTimestamp(decisionCycle.decision.recordedAt)}</dd>
+                        </div>
+                        <div>
+                          <dt>Selected Attention</dt>
+                          <dd>{decisionCycle.decision.selectedAttentionIds.length}</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  ) : (
+                    <div className="inline-notice" role="note">
+                      <strong>Supplied engine state</strong>
+                      <span>No decision-cycle projection is supplied for this walkthrough.</span>
                     </div>
-                    <p className="decision-summary">{decisionCycle.decision.summary}</p>
-                    <dl className="metadata-list">
-                      <div>
-                        <dt>Decision ID</dt>
-                        <dd className="mono-wrap">{decisionCycle.decision.id}</dd>
-                      </div>
-                      <div>
-                        <dt>Recorded</dt>
-                        <dd>{displayTimestamp(decisionCycle.decision.recordedAt)}</dd>
-                      </div>
-                      <div>
-                        <dt>Selected Attention</dt>
-                        <dd>{decisionCycle.decision.selectedAttentionIds.length}</dd>
-                      </div>
-                    </dl>
-                  </article>
-                  <ContextPanel projection={projection} selectedAttentionId={selectedAttentionId} />
+                  )}
                 </div>
-              ) : (
-                <EmptyState
-                  title="No decision-cycle projection is supplied"
-                  detail="The shell does not invent a draft, recommendation, measurement, or outcome when the engine projection omits that state."
-                />
-              )}
+                <ContextPanel projection={projection} selectedAttentionId={selectedAttentionId} />
+              </div>
             </section>
           ) : null}
         </div>
