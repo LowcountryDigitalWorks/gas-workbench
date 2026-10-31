@@ -225,6 +225,36 @@ function ContextPanel({
   )
 }
 
+export function LimitationsPanel({ limitations }: { readonly limitations: readonly string[] }) {
+  const primaryLimitations = limitations.slice(0, 4)
+  const additionalLimitations = limitations.slice(4)
+
+  return (
+    <div className="panel-card">
+      <p className="eyebrow">Interpretation boundary</p>
+      <h3>Limitations remain visible</h3>
+      <ul className="plain-list">
+        {primaryLimitations.map((limitation) => (
+          <li key={limitation}>{limitation}</li>
+        ))}
+      </ul>
+      {additionalLimitations.length > 0 ? (
+        <details className="limitations-disclosure">
+          <summary>
+            Show all {limitations.length} supplied limitations
+            <span className="secondary-note"> ({additionalLimitations.length} more)</span>
+          </summary>
+          <ul className="plain-list limitations-list">
+            {additionalLimitations.map((limitation) => (
+              <li key={limitation}>{limitation}</li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </div>
+  )
+}
+
 export function App() {
   const [scenarioKey, setScenarioKey] = useState<WorkbenchScenarioKey>('human-review')
   const [activeView, setActiveView] = useState<WorkspaceView>('home')
@@ -390,18 +420,7 @@ export function App() {
                   <ReadinessList entries={workspace.readiness} />
                 </div>
 
-                <div className="panel-card">
-                  <p className="eyebrow">Interpretation boundary</p>
-                  <h3>Limitations remain visible</h3>
-                  <ul className="plain-list">
-                    {workspace.limitations.slice(0, 4).map((limitation) => (
-                      <li key={limitation}>{limitation}</li>
-                    ))}
-                  </ul>
-                  {workspace.limitations.length > 4 ? (
-                    <p className="secondary-note">{workspace.limitations.length - 4} additional supplied limitations remain in the projection.</p>
-                  ) : null}
-                </div>
+                <LimitationsPanel limitations={workspace.limitations} />
               </div>
             </section>
           ) : null}
