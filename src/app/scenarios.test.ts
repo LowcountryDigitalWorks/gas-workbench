@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { LimitationsPanel } from './App'
@@ -51,7 +52,7 @@ describe('Workbench shell scenarios', () => {
     if (result.status !== 'ready') return
 
     const { limitations } = result.scenario.projection.workspace
-    const markup = renderToStaticMarkup(<LimitationsPanel limitations={limitations} />)
+    const markup = renderToStaticMarkup(createElement(LimitationsPanel, { limitations }))
 
     expect(markup).toContain('<details')
     expect(markup).toContain('<summary>')
