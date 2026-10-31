@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { LimitationsPanel } from './App'
+import { DecisionRequestCard, LimitationsPanel } from './App'
 import { decodeScenario, workbenchScenarios } from './scenarios'
 
 describe('Workbench shell scenarios', () => {
@@ -58,6 +58,25 @@ describe('Workbench shell scenarios', () => {
     expect(markup).toContain('<summary>')
     expect(markup.match(/<li/g)).toHaveLength(limitations.length)
     expect(markup).toContain(`Show all ${limitations.length} supplied limitations`)
+  })
+
+  it('renders a prepared decision request as non-recorded UI state with exact references', () => {
+    const result = workbenchScenarios['human-review']
+    expect(result.status).toBe('ready')
+    if (result.status !== 'ready') return
+
+    const attention = result.scenario.projection.workspace.attention[0]
+    expect(attention).toBeDefined()
+    if (!attention) return
+
+    const markup = renderToStaticMarkup(createElement(DecisionRequestCard, { attention }))
+
+    expect(markup).toContain('Workbench preparation only')
+    expect(markup).toContain('Human decision request')
+    expect(markup).toContain('not recorded')
+    expect(markup).toContain(attention.id)
+    expect(markup).toContain(attention.evidenceIdentity)
+    expect(markup).toContain('does not record a recommendation, decision, action, measurement, or outcome')
   })
 
   it('fails visibly when the projection boundary rejects an unsupported version', () => {
