@@ -539,7 +539,7 @@ export function App() {
                   <p className="eyebrow">Decision</p>
                   <h2 id="decision-title">Human decision handoff</h2>
                 </div>
-                <p>Workbench preparation remains visually and semantically separate from supplied engine-recorded decision state.</p>
+                <p>Workbench preparation remains visually and semantically separate from supplied human decision context.</p>
               </div>
 
               <div className="decision-layout">
@@ -558,7 +558,7 @@ export function App() {
                       <div className="card-heading-row">
                         <div>
                           <p className="eyebrow">Supplied engine state · {displayToken(decisionCycle.decision.disposition)}</p>
-                          <h3>Engine-recorded human decision</h3>
+                          <h3>Supplied human decision context</h3>
                         </div>
                         <StatusPill state={decisionCycle.readiness.state} />
                       </div>
@@ -569,7 +569,7 @@ export function App() {
                           <dd className="mono-wrap">{decisionCycle.decision.id}</dd>
                         </div>
                         <div>
-                          <dt>Recorded</dt>
+                          <dt>Statement timestamp</dt>
                           <dd>{displayTimestamp(decisionCycle.decision.recordedAt)}</dd>
                         </div>
                         <div>
