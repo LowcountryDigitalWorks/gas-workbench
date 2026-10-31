@@ -6,8 +6,13 @@ import {
 } from './moduleRegistry'
 
 describe('Workbench module registry', () => {
-  it('registers only implemented foundation modules', () => {
-    expect(registeredModules.map((module) => module.id)).toEqual(['home'])
+  it('registers only implemented slice modules', () => {
+    expect(registeredModules.map((module) => module.id)).toEqual([
+      'home',
+      'evidence',
+      'attention',
+      'decisions',
+    ])
   })
 
   it('rejects duplicate module identifiers', () => {
