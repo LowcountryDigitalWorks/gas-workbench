@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type {
   WorkbenchAttentionItem,
   WorkbenchEvidenceRow,
@@ -234,10 +234,16 @@ export function App() {
     projection?.workspace.attention[0]?.id ?? null,
   )
 
-  useEffect(() => {
-    setSelectedAttentionId(projection?.workspace.attention[0]?.id ?? null)
+  const selectScenario = (key: WorkbenchScenarioKey) => {
+    const nextScenario = workbenchScenarios[key]
+    setScenarioKey(key)
     setActiveView('home')
-  }, [projection])
+    setSelectedAttentionId(
+      nextScenario.status === 'ready'
+        ? nextScenario.scenario.projection.workspace.attention[0]?.id ?? null
+        : null,
+    )
+  }
 
   if (selectedScenario.status === 'error' || projection === null) {
     return (
@@ -334,7 +340,7 @@ export function App() {
                   key={key}
                   className={`scenario-button ${scenarioKey === key ? 'is-active' : ''}`}
                   aria-pressed={scenarioKey === key}
-                  onClick={() => setScenarioKey(key)}
+                  onClick={() => selectScenario(key)}
                 >
                   {label}
                 </button>
