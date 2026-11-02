@@ -631,6 +631,7 @@
 .measurement-panel > header .badge, .measurement-record > header .badge { flex: 0 0 auto; white-space: nowrap; }
 .measurement-panel h3, .measurement-record h4 { overflow-wrap: anywhere; word-break: break-word; }
 .measurement-view code { overflow-wrap: anywhere; word-break: break-word; }
+.measurement-view .muted, .measurement-limits li { overflow-wrap: anywhere; word-break: break-word; }
 .measurement-view .facts > div { grid-template-columns: minmax(130px, 180px) minmax(0, 1fr); }
 .measurement-view .notice { margin: 14px 0; }
 .measurement-section-heading { margin: 28px 0 8px; }
