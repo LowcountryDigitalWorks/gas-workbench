@@ -35,15 +35,24 @@
         "availability": "limited",
         "observedAt": "2026-11-01T11:00:00Z",
         "freshThrough": "2026-11-01T11:00:00Z"
+      },
+      {
+        "id": "yandex-webmaster",
+        "state": "ready",
+        "reasons": [],
+        "coverage": "complete",
+        "availability": "available",
+        "observedAt": "2026-11-01T11:00:00Z",
+        "freshThrough": "2026-11-01T11:00:00Z"
       }
     ],
     "urls": [
       {
         "id": "url:services",
         "url": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow",
-        "state": "not_ready",
+        "state": "ready",
         "reasons": [
-          "insufficient_ready_search_engines"
+          "coverage_partial"
         ],
         "providers": [
           {
@@ -64,8 +73,18 @@
             "reasons": [
               "coverage_partial"
             ],
+            "observedAt": "2026-11-01T11:00:00Z"
+          },
+          {
+            "id": "yandex-webmaster",
+            "observationState": "observed_ready",
+            "providerReadiness": "ready",
+            "reasons": [],
             "observedAt": "2026-11-01T11:00:00Z",
-            "indexingPermission": "allowed"
+            "searchPresence": "present",
+            "canonicalState": "other",
+            "canonicalTarget": "https://harbor-demo.example/services/",
+            "httpStatus": 200
           }
         ],
         "findings": [
@@ -77,9 +96,9 @@
           "state": "submission_accepted_no_later_engine_observation"
         },
         "searchContext": "observed",
-        "queryCount": 0,
+        "queryCount": 1,
         "clicks": 0,
-        "impressions": 0,
+        "impressions": 5,
         "evidenceIdentity": "synthetic:discovery:services",
         "attentionId": "attention:discovery:services"
       }
