@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "ldw.gas-workbench-technical.v1",
+  "schemaMinorVersion": 0,
+  "identity": {
+    "workspaceId": "workspace:technical-demo",
+    "tenantId": "tenant:synthetic-ldw",
+    "siteId": "site:harbor-demo",
+    "siteScopeRevisionId": "scope:technical-demo",
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-11-01T12:00:00Z",
+    "evaluatedAt": "2026-11-01T12:00:00Z"
+  },
+  "collections": [
+    {
+      "id": "collection:siteone-baseline",
+      "provider": "siteone",
+      "sourceSchema": "ldw.website-quality/v1.3",
+      "adapterMapping": "3.0.0",
+      "target": "https://harbor-demo.example",
+      "availability": "ready",
+      "completeness": "complete",
+      "reasons": [],
+      "observations": [
+        {
+          "id": "observation:siteone-baseline",
+          "code": "page-title",
+          "value": "Harbor"
+        }
+      ],
+      "method": "wqt_normalized",
+      "sourcePeriod": {
+        "end": "2026-10-28",
+        "start": "2026-10-01"
+      }
+    },
+    {
+      "id": "collection:siteone-current",
+      "provider": "siteone",
+      "sourceSchema": "ldw.website-quality/v1.3",
+      "adapterMapping": "3.0.0",
+      "target": "https://harbor-demo.example",
+      "availability": "partial",
+      "completeness": "unknown",
+      "reasons": [
+        "coverage_unknown"
+      ],
+      "observations": [],
+      "method": "wqt_normalized",
+      "sourcePeriod": {
+        "end": "2026-11-01",
+        "start": "2026-10-29"
+      }
+    }
+  ],
+  "diff": {
+    "baselineCollectionId": "collection:siteone-baseline",
+    "currentCollectionId": "collection:siteone-current",
+    "summary": {
+      "total": 1,
+      "unchanged": 0,
+      "changed": 0,
+      "appeared": 0,
+      "missingFromCurrent": 0,
+      "coverageUnknown": 1,
+      "attentionCount": 0
+    },
+    "entries": [
+      {
+        "cohortHash": "cohort:page-title",
+        "state": "coverage_unknown",
+        "baselineObservationId": "observation:siteone-baseline",
+        "reason": "Current collection coverage is unknown; absence cannot be established."
+      }
+    ]
+  },
+  "limitations": [
+    "Coverage unknown is not disappearance, regression, failure, or zero.",
+    "Synthetic public-safe example."
+  ]
+}

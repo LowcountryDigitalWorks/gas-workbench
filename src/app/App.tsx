@@ -11,6 +11,10 @@ import { Visibility } from '../modules/visibility/Visibility'
 import { loadVisibilityFixture } from '../engine/visibilityFixtures'
 import type { VisibilityFeatureProjection } from '../engine/visibility-projection'
 import type { VisibilityFixtureId } from '../engine/visibilityFixtures'
+import { loadTechnicalFixture } from '../engine/technicalFixtures'
+import type { TechnicalFixtureId } from '../engine/technicalFixtures'
+import type { TechnicalProjection } from '../engine/technical-projection'
+import { Technical } from '../modules/technical/Technical'
 import type { Draft } from '../modules/decisions/DecisionDraft'
 import { fixtureIds, loadFixture } from './fixtures'
 import type { FixtureId } from './fixtures'
@@ -20,6 +24,7 @@ type View = (typeof views)[number]
 const labels = {
   home: 'Home',
   visibility: 'Visibility',
+  technical: 'Technical',
   evidence: 'Evidence',
   attention: 'Attention',
   decisions: 'Decision',
@@ -27,6 +32,7 @@ const labels = {
 const icons = {
   home: 'home',
   visibility: 'chart-bar',
+  technical: 'file-description',
   evidence: 'file-description',
   attention: 'search',
   decisions: 'notes',
@@ -36,6 +42,7 @@ const cases = {
   limited: 'Limited evidence',
   'human-review': 'Human review',
   'visibility-review': 'Visibility review',
+  'technical-review': 'Technical review',
 }
 const emptyDraft = { rationale: '', disposition: 'Request review' }
 export function App() {
@@ -48,6 +55,8 @@ export function App() {
   const [retry, setRetry] = useState(0)
   const [visibilityCase, setVisibilityCase] = useState<VisibilityFixtureId>('comparable-search')
   const [visibility, setVisibility] = useState<{ value?: VisibilityFeatureProjection; error?: string }>({})
+  const [technicalCase, setTechnicalCase] = useState<TechnicalFixtureId>('ready')
+  const [technical, setTechnical] = useState<{ value?: TechnicalProjection; error?: string }>({})
   const [selected, setSelected] = useState<string | undefined>()
   const [attention, setAttention] = useState<string | undefined>()
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
@@ -85,8 +94,21 @@ export function App() {
     })
     return () => { active = false }
   }, [projection, visibilityCase])
+  useEffect(() => {
+    if (!projection) return
+    let active = true
+    loadTechnicalFixture(technicalCase, projection).then((value) => { if (active) setTechnical({ value }) }).catch((error) => { if (active) setTechnical({ error: error instanceof Error ? error.message : 'Technical projection unavailable.' }) })
+    return () => { active = false }
+  }, [projection, technicalCase])
   const w = projection?.workspace
   function navigate(next: View) {
+    if (next === 'technical' && fixture !== 'technical-review') {
+      setFixture('technical-review')
+      setResult({})
+      setSelected(undefined)
+      setAttention(undefined)
+      setTechnical({})
+    }
     if (next === 'visibility' && fixture !== 'visibility-review') {
       setFixture('visibility-review')
       setResult({})
@@ -118,6 +140,7 @@ export function App() {
   const captions = {
     home: 'Current site state',
     visibility: 'Source-specific evidence and comparability',
+    technical: 'Technical evidence and coverage',
     evidence: `${w?.sourceManifest.length ?? '…'} supplied sources`,
     attention: `${w?.attention.length ?? '…'} unranked items`,
     decisions: 'Human draft / supplied context',
@@ -194,6 +217,8 @@ export function App() {
                 ? 'Current state'
                 : view === 'visibility'
                   ? 'Visibility evidence'
+                : view === 'technical'
+                  ? 'Technical evidence'
                 : view === 'evidence'
                   ? 'Source Atlas'
                   : view === 'attention'
@@ -279,6 +304,9 @@ export function App() {
                 <h2>{visibility.error ? 'Visibility unavailable' : 'Checking Visibility projection'}</h2>
                 <p>{visibility.error ?? 'Validating source and workspace identity…'}</p>
               </section>
+            )}
+            {view === 'technical' && (
+              technical.value ? <Technical projection={technical.value} shell={projection} fixture={technicalCase} chooseFixture={setTechnicalCase} inspect={(moduleId) => inspect(moduleId)} review={(id) => { setAttention(id); navigate('attention') }} /> : <section className="error-state" role={technical.error ? 'alert' : 'status'}><h2>{technical.error ? 'Technical unavailable' : 'Checking Technical projection'}</h2><p>{technical.error ?? 'Validating source and workspace identity…'}</p></section>
             )}
             {view === 'evidence' && (
               <Evidence

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "ldw.gas-workbench-technical.v1",
+  "schemaMinorVersion": 0,
+  "identity": {
+    "workspaceId": "workspace:technical-demo",
+    "tenantId": "tenant:synthetic-ldw",
+    "siteId": "site:harbor-demo",
+    "siteScopeRevisionId": "scope:technical-demo",
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-11-01T12:00:00Z",
+    "evaluatedAt": "2026-11-01T12:00:00Z"
+  },
+  "collections": [],
+  "discovery": {
+    "scopeId": "scope:technical-demo",
+    "evaluatedAt": "2026-11-01T12:00:00Z",
+    "policyId": "policy:synthetic-discovery-1",
+    "providers": [
+      {
+        "id": "google-search-console",
+        "state": "ready",
+        "reasons": [],
+        "coverage": "complete",
+        "availability": "available",
+        "observedAt": "2026-11-01T11:00:00Z",
+        "freshThrough": "2026-11-01T11:00:00Z"
+      },
+      {
+        "id": "yandex-webmaster",
+        "state": "ready",
+        "reasons": [],
+        "coverage": "complete",
+        "availability": "available",
+        "observedAt": "2026-11-01T11:00:00Z",
+        "freshThrough": "2026-11-01T11:00:00Z"
+      }
+    ],
+    "urls": [
+      {
+        "id": "url:quiet",
+        "url": "https://harbor-demo.example/",
+        "state": "ready",
+        "reasons": [],
+        "providers": [
+          {
+            "id": "google-search-console",
+            "observationState": "observed_ready",
+            "providerReadiness": "ready",
+            "reasons": [],
+            "observedAt": "2026-11-01T11:00:00Z",
+            "searchPresence": "present",
+            "crawlState": "success",
+            "indexingPermission": "allowed",
+            "canonicalState": "self",
+            "canonicalTarget": "https://harbor-demo.example/",
+            "httpStatus": 200
+          },
+          {
+            "id": "yandex-webmaster",
+            "observationState": "observed_ready",
+            "providerReadiness": "ready",
+            "reasons": [],
+            "observedAt": "2026-11-01T11:00:00Z",
+            "searchPresence": "present",
+            "crawlState": "success",
+            "indexingPermission": "allowed",
+            "canonicalState": "self",
+            "canonicalTarget": "https://harbor-demo.example/",
+            "httpStatus": 200
+          }
+        ],
+        "findings": [
+          "no_cross_engine_divergence_observed"
+        ],
+        "indexNow": {
+          "laterProviders": [],
+          "note": "IndexNow submission is notification evidence only; it does not prove or cause indexing.",
+          "state": "no_submission_evidence"
+        },
+        "searchContext": "not_supplied"
+      }
+    ]
+  },
+  "limitations": [
+    "No cross-engine divergence was observed in this supplied synthetic sample; this is not a universal healthy-site claim.",
+    "Synthetic public-safe example; no provider call occurred."
+  ]
+}

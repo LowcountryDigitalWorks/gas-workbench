@@ -1,0 +1,221 @@
+{
+  "schemaVersion": "ldw.gas-workbench-projection.v1",
+  "schemaMinorVersion": 0,
+  "source": {
+    "product": "gas-engine",
+    "artifact": "operator-workspace",
+    "artifactVersion": "0.17.0",
+    "workspaceId": "workspace:technical-demo"
+  },
+  "workspace": {
+    "scope": {
+      "tenantId": "tenant:synthetic-ldw",
+      "siteId": "site:harbor-demo",
+      "siteScopeRevisionId": "scope:technical-demo"
+    },
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-11-01T12:00:00Z",
+    "evaluatedAt": "2026-11-01T12:00:00Z",
+    "readiness": [
+      {
+        "reasons": [],
+        "state": "ready",
+        "moduleId": "evidence_diff"
+      },
+      {
+        "reasons": [],
+        "state": "not_supplied",
+        "moduleId": "review_history"
+      },
+      {
+        "reasons": [],
+        "state": "not_supplied",
+        "moduleId": "search_analytics"
+      },
+      {
+        "reasons": [],
+        "state": "not_supplied",
+        "moduleId": "search_change"
+      },
+      {
+        "reasons": [],
+        "state": "not_supplied",
+        "moduleId": "page_focus"
+      },
+      {
+        "reasons": [
+          "coverage_partial"
+        ],
+        "state": "limited",
+        "moduleId": "discovery_diagnostics"
+      },
+      {
+        "reasons": [],
+        "state": "not_supplied",
+        "moduleId": "ai_visibility"
+      }
+    ],
+    "sourceManifest": [
+      {
+        "moduleId": "evidence_diff",
+        "release": "0.7",
+        "identity": "synthetic:evidence-diff:page-title",
+        "providerIds": [
+          "siteone"
+        ],
+        "sourcePeriods": [],
+        "readiness": "ready",
+        "reasons": []
+      },
+      {
+        "moduleId": "discovery_diagnostics",
+        "release": "0.13",
+        "identity": "synthetic:discovery:services",
+        "providerIds": [
+          "google-search-console",
+          "bing-webmaster-tools",
+          "yandex-webmaster"
+        ],
+        "sourcePeriods": [],
+        "readiness": "limited",
+        "reasons": [
+          "coverage_partial"
+        ]
+      }
+    ],
+    "evidenceRows": [
+      {
+        "id": "attention:evidence-diff:page-title",
+        "moduleId": "evidence_diff",
+        "kind": "changed",
+        "state": "changed",
+        "evidenceIdentity": "synthetic:evidence-diff:page-title",
+        "providerIds": [
+          "siteone"
+        ],
+        "readinessContext": [],
+        "cohortHash": "cohort:page-title"
+      },
+      {
+        "id": "attention:discovery:services",
+        "moduleId": "discovery_diagnostics",
+        "kind": "canonical_divergence_candidate",
+        "state": "candidate",
+        "evidenceIdentity": "synthetic:discovery:services",
+        "providerIds": [
+          "google-search-console",
+          "bing-webmaster-tools",
+          "yandex-webmaster"
+        ],
+        "url": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow",
+        "readinessContext": [
+          "coverage_partial"
+        ]
+      }
+    ],
+    "attention": [
+      {
+        "id": "attention:evidence-diff:page-title",
+        "navigationOrder": 1,
+        "moduleId": "evidence_diff",
+        "originalKind": "changed",
+        "originalState": "changed",
+        "evidenceIdentity": "synthetic:evidence-diff:page-title",
+        "identity": {
+          "cohortHash": "cohort:page-title"
+        },
+        "readinessContext": []
+      },
+      {
+        "id": "attention:discovery:services",
+        "navigationOrder": 2,
+        "moduleId": "discovery_diagnostics",
+        "originalKind": "canonical_divergence_candidate",
+        "originalState": "candidate",
+        "evidenceIdentity": "synthetic:discovery:services",
+        "identity": {
+          "url": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow"
+        },
+        "readinessContext": [
+          "coverage_partial"
+        ]
+      }
+    ],
+    "decisionCycle": {
+      "readiness": {
+        "state": "measurement_not_planned",
+        "reasons": []
+      },
+      "decision": {
+        "id": "decision:technical-synthetic",
+        "disposition": "investigate",
+        "summary": "Synthetic review context only.",
+        "recordedAt": "2026-11-01T12:00:00Z",
+        "selectedAttentionIds": [
+          "attention:discovery:services"
+        ],
+        "references": [
+          {
+            "kind": "url",
+            "value": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow"
+          }
+        ]
+      }
+    },
+    "timeline": [
+      {
+        "kind": "service_brief",
+        "at": "2026-11-01T12:00:00Z",
+        "label": "Release 0.15 handoff fixture",
+        "state": "generated",
+        "referenceId": "service-brief:technical-synthetic"
+      }
+    ],
+    "navigation": {
+      "overview": {
+        "attentionCount": 2,
+        "exactUrlCount": 1,
+        "readinessCount": 7,
+        "limitationCount": 2,
+        "evidenceStateCounts": [
+          {
+            "state": "changed",
+            "count": 1
+          },
+          {
+            "state": "candidate",
+            "count": 1
+          }
+        ]
+      },
+      "evidence": {
+        "rowCount": 2,
+        "sourceCount": 2
+      },
+      "attention": {
+        "rowCount": 2,
+        "semantics": "human_review_selection_not_priority"
+      },
+      "decisionCycle": {
+        "supplied": true,
+        "readiness": "measurement_not_planned",
+        "recordedMeasurementCount": 0,
+        "humanOutcomeCount": 0
+      },
+      "history": {
+        "timelineCount": 1
+      },
+      "reports": {
+        "maximumPrimaryItems": 3
+      }
+    },
+    "authorityNotes": [
+      "Synthetic shell only; accepted production data is not present.",
+      "The Release 0.15 handoff preserves evidence references and does not grant action authority."
+    ],
+    "limitations": [
+      "This fixture is not a universal site-health assessment.",
+      "Navigation order is not priority, severity, or business impact."
+    ]
+  }
+}
