@@ -11,6 +11,7 @@ describe('Workbench module registry', () => {
       'home',
       'visibility',
       'technical',
+      'measurement',
       'evidence',
       'attention',
       'decisions',

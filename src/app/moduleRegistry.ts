@@ -22,6 +22,7 @@ export const registeredModules = [
   { id: 'home', label: 'Home', description: 'Current site state.' },
   { id: 'visibility', label: 'Visibility', description: 'Source-native visibility evidence.' },
   { id: 'technical', label: 'Technical', description: 'Technical, longitudinal, and discovery evidence.' },
+  { id: 'measurement', label: 'Measure', description: 'Measurement readiness, claim ceilings, and human outcomes.' },
   {
     id: 'evidence',
     label: 'Evidence',

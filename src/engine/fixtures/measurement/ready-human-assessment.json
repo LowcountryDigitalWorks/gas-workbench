@@ -1,0 +1,169 @@
+﻿{
+    "identity":  {
+                     "evaluatedAt":  "2026-11-02T20:50:00Z",
+                     "workspaceId":  "workspace:measurement-ready-human-assessment",
+                     "generatedAt":  "2026-11-02T20:50:00Z",
+                     "siteId":  "site:harbor-demo",
+                     "trustedTarget":  "https://harbor-demo.example",
+                     "tenantId":  "tenant:synthetic-ldw",
+                     "siteScopeRevisionId":  "scope:measurement-ready-human-assessment"
+                 },
+    "authorityNotes":  [
+                           "Measurement interpretation is supplied by accepted gas-engine semantics; Workbench does not recompute it.",
+                           "Human outcome direction is preserved as recorded and is not inferred from numeric movement."
+                       ],
+    "cycleReadiness":  {
+                           "state":  "ready_for_human_assessment",
+                           "reasons":  [
+
+                                       ]
+                       },
+    "decision":  {
+                     "summary":  "Measure the accepted synthetic search change without inferring outcome direction from numeric movement.",
+                     "disposition":  "recommend",
+                     "id":  "decision:measurement-ready-human-assessment",
+                     "recordedAt":  "2026-11-02T20:40:00Z"
+                 },
+    "plan":  {
+                 "id":  "search-change-plan:ready-human-assessment",
+                 "followUpMeasurementId":  "measurement:follow-up",
+                 "readiness":  {
+                                   "state":  "ready_for_human_assessment",
+                                   "reasons":  [
+
+                                               ]
+                               },
+                 "baselineMeasurementId":  "measurement:baseline",
+                 "target":  {
+                                "followUpObservationId":  "observation:follow-up-clicks",
+                                "rowIdentity":  "row:synthetic-services",
+                                "baselineObservationId":  "observation:baseline-clicks",
+                                "metric":  "clicks",
+                                "page":  "https://harbor-demo.example/services",
+                                "query":  "harbor services"
+                            },
+                 "annotation":  {
+                                    "id":  "annotation:ready-human-assessment",
+                                    "summary":  "Synthetic accepted search change for measurement walkthrough."
+                                }
+             },
+    "limitations":  [
+                        "Synthetic public-safe measurement walkthrough.",
+                        "No business, revenue, universal visibility, or causal claim is created by this projection."
+                    ],
+    "schemaMinorVersion":  0,
+    "outcomes":  [
+
+                 ],
+    "measurements":  [
+                         {
+                             "id":  "measurement:baseline",
+                             "relationship":  {
+                                                  "role":  "baseline"
+                                              },
+                             "comparability":  {
+                                                   "state":  "comparable"
+                                               },
+                             "createdAt":  "2026-10-29T00:00:00Z",
+                             "dueWindow":  {
+                                               "start":  "2026-10-01T00:00:00Z",
+                                               "end":  "2026-10-28T23:59:59Z"
+                                           },
+                             "methodology":  {
+                                                 "id":  "search-analytics-change",
+                                                 "version":  "1.0.0"
+                                             },
+                             "result":  {
+                                            "observedWindow":  {
+                                                                   "start":  "2026-10-01T00:00:00Z",
+                                                                   "end":  "2026-10-28T23:59:59Z"
+                                                               },
+                                            "observations":  [
+                                                                 {
+                                                                     "referenceId":  "observation:baseline-clicks",
+                                                                     "value":  {
+                                                                                   "value":  0,
+                                                                                   "type":  "number",
+                                                                                   "state":  "observed"
+                                                                               }
+                                                                 }
+                                                             ],
+                                            "state":  "measured"
+                                        }
+                         },
+                         {
+                             "id":  "measurement:follow-up",
+                             "relationship":  {
+                                                  "role":  "follow_up",
+                                                  "baselineMeasurementId":  "measurement:baseline"
+                                              },
+                             "comparability":  {
+                                                   "state":  "comparable"
+                                               },
+                             "createdAt":  "2026-11-29T00:00:00Z",
+                             "dueWindow":  {
+                                               "start":  "2026-11-01T00:00:00Z",
+                                               "end":  "2026-11-28T23:59:59Z"
+                                           },
+                             "methodology":  {
+                                                 "id":  "search-analytics-change",
+                                                 "version":  "1.0.0"
+                                             },
+                             "result":  {
+                                            "observedWindow":  {
+                                                                   "start":  "2026-11-01T00:00:00Z",
+                                                                   "end":  "2026-11-28T23:59:59Z"
+                                                               },
+                                            "observations":  [
+                                                                 {
+                                                                     "referenceId":  "observation:follow-up-clicks",
+                                                                     "value":  {
+                                                                                   "value":  4,
+                                                                                   "type":  "number",
+                                                                                   "state":  "observed"
+                                                                               }
+                                                                 }
+                                                             ],
+                                            "state":  "measured"
+                                        }
+                         }
+                     ],
+    "interpretation":  {
+                           "methodology":  {
+                                               "id":  "ldw-measurement-interpretation-claim-ceilings",
+                                               "release":  "0.22.0",
+                                               "version":  "1.0.0"
+                                           },
+                           "id":  "measurement-interpretation:ready-human-assessment",
+                           "allowedClaimCodes":  [
+                                                     "observed_temporal_change"
+                                                 ],
+                           "comparability":  {
+                                                 "baselineMeasurementId":  "measurement:baseline",
+                                                 "followUpMeasurementId":  "measurement:follow-up",
+                                                 "reasons":  [
+                                                                 "exposure_unknown"
+                                                             ],
+                                                 "state":  "comparable"
+                                             },
+                           "prohibitedOverclaimCodes":  [
+                                                            "causal_attribution",
+                                                            "business_or_revenue_causality",
+                                                            "universal_visibility",
+                                                            "cross_provider_equivalence",
+                                                            "automatic_recommendation_or_action"
+                                                        ],
+                           "limitations":  [
+                                               "human_outcome_required_for_outcome_recording",
+                                               "no_business_or_revenue_causality",
+                                               "no_universal_visibility_or_cross_provider_claim"
+                                           ],
+                           "readiness":  "ready",
+                           "exposure":  {
+                                            "state":  "unknown"
+                                        },
+                           "designClass":  "annotated_pre_post",
+                           "claimCeiling":  "temporal_association_only"
+                       },
+    "schemaVersion":  "ldw.gas-workbench-measurement.v1"
+}
