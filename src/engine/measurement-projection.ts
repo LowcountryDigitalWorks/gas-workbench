@@ -133,8 +133,6 @@ function parseInterpretation(raw: unknown, i: number): MeasurementFeatureProject
   const methodology = exact(x.methodology, `${p}.methodology`, ['id', 'version', 'release']); if (methodology.id !== 'ldw-measurement-interpretation-claim-ceilings' || methodology.version !== '1.0.0' || methodology.release !== '0.22.0') fail(`${p}.methodology must preserve accepted Release 0.22 identity.`)
   const exposureRaw = exact(x.exposure, `${p}.exposure`, ['state'], ['methodId', 'methodVersion', 'evidenceReference']), exposure = { state: en(exposureRaw.state, EXPOSURE_STATES, `${p}.exposure.state`), ...(optionalString(exposureRaw, 'methodId', `${p}.exposure`) ? { methodId: exposureRaw.methodId as string } : {}), ...(optionalString(exposureRaw, 'methodVersion', `${p}.exposure`) ? { methodVersion: exposureRaw.methodVersion as string } : {}), ...(optionalString(exposureRaw, 'evidenceReference', `${p}.exposure`) ? { evidenceReference: exposureRaw.evidenceReference as string } : {}) }
   const comp = exact(x.comparability, `${p}.comparability`, ['state', 'reasons', 'baselineMeasurementId', 'followUpMeasurementId']), compState = en(comp.state, ['comparable', 'unknown', 'discontinuous'] as const, `${p}.comparability.state`), reasons = strings(comp.reasons, `${p}.comparability.reasons`)
-  if (compState === 'comparable' && reasons.length > 0) fail(`${p}.comparability comparable cannot carry reasons.`)
-  if (compState !== 'comparable' && reasons.length === 0) fail(`${p}.comparability ${compState} requires reasons.`)
   const claimCeiling = en(x.claimCeiling, CLAIM_CEILINGS, `${p}.claimCeiling`), readiness = en(x.readiness, ['ready', 'limited', 'blocked'] as const, `${p}.readiness`)
   const allowedClaimCodes = arr(x.allowedClaimCodes, `${p}.allowedClaimCodes`).map((code) => en(code, ALLOWED_CLAIMS, `${p}.allowedClaimCodes[]`))
   const prohibitedOverclaimCodes = arr(x.prohibitedOverclaimCodes, `${p}.prohibitedOverclaimCodes`).map((code) => en(code, PROHIBITED_OVERCLAIMS, `${p}.prohibitedOverclaimCodes[]`))
@@ -161,11 +159,21 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
   const measurements = arr(root.measurements, 'measurement.measurements').map(parseMeasurement); unique(measurements.map((m) => m.id), 'measurement.measurements')
   const outcomes = arr(root.outcomes, 'measurement.outcomes').map(parseOutcome); unique(outcomes.map((o) => o.id), 'measurement.outcomes')
   const interpretations = arr(root.interpretations, 'measurement.interpretations').map(parseInterpretation); unique(interpretations.map((p) => p.id), 'measurement.interpretations')
-  const measurementIds = new Set(measurements.map((m) => m.id))
-  for (const m of measurements) if (m.relationship.role === 'follow_up' && !measurementIds.has(m.relationship.baselineMeasurementId)) fail(`Follow-up measurement ${m.id} references absent baseline ${m.relationship.baselineMeasurementId}.`)
-  if (measurementPlan && (!measurementIds.has(measurementPlan.baselineMeasurementId) || !measurementIds.has(measurementPlan.followUpMeasurementId))) fail('Measurement plan IDs must resolve to supplied measurement records.')
-  for (const outcome of outcomes) for (const id of outcome.measurementIds) if (!measurementIds.has(id)) fail(`Outcome ${outcome.id} references absent measurement ${id}.`)
-  for (const profile of interpretations) if (!measurementIds.has(profile.comparability.baselineMeasurementId) || !measurementIds.has(profile.comparability.followUpMeasurementId)) fail(`Interpretation ${profile.id} references absent measurement records.`)
+  const measurementsById = new Map(measurements.map((m) => [m.id, m] as const))
+  for (const m of measurements) {
+    if (m.relationship.role !== 'follow_up') continue
+    const baseline = measurementsById.get(m.relationship.baselineMeasurementId)
+    if (baseline === undefined) fail(`Follow-up measurement ${m.id} references absent baseline ${m.relationship.baselineMeasurementId}.`)
+    if (baseline.relationship.role !== 'baseline') fail(`Follow-up measurement ${m.id} must reference a supplied baseline measurement.`)
+  }
+  if (measurementPlan) {
+    const baseline = measurementsById.get(measurementPlan.baselineMeasurementId)
+    const followUp = measurementsById.get(measurementPlan.followUpMeasurementId)
+    if (baseline === undefined || followUp === undefined) fail('Measurement plan IDs must resolve to supplied measurement records.')
+    if (baseline.relationship.role !== 'baseline' || followUp.relationship.role !== 'follow_up') fail('Measurement plan IDs must resolve to baseline/follow-up records by role.')
+  }
+  for (const outcome of outcomes) for (const id of outcome.measurementIds) if (!measurementsById.has(id)) fail(`Outcome ${outcome.id} references absent measurement ${id}.`)
+  for (const profile of interpretations) if (!measurementsById.has(profile.comparability.baselineMeasurementId) || !measurementsById.has(profile.comparability.followUpMeasurementId)) fail(`Interpretation ${profile.id} references absent measurement records.`)
   return { schemaVersion: MEASUREMENT_SCHEMA_VERSION, schemaMinorVersion: MEASUREMENT_SCHEMA_MINOR_VERSION, identity: identity(root.identity), cycle: { dossierId: str(cycleRaw.dossierId, 'measurement.cycle.dossierId'), sourceServiceBriefId: str(cycleRaw.sourceServiceBriefId, 'measurement.cycle.sourceServiceBriefId'), decision: { id: str(decisionRaw.id, 'measurement.cycle.decision.id'), disposition: en(decisionRaw.disposition, ['investigate', 'recommend', 'defer', 'dismiss'] as const, 'measurement.cycle.decision.disposition'), summary: str(decisionRaw.summary, 'measurement.cycle.decision.summary'), recordedAt: str(decisionRaw.recordedAt, 'measurement.cycle.decision.recordedAt') }, readiness, ...(measurementPlan ? { measurementPlan } : {}) }, measurements, outcomes, interpretations, authorityNotes: strings(root.authorityNotes, 'measurement.authorityNotes'), limitations: strings(root.limitations, 'measurement.limitations') }
 }
 

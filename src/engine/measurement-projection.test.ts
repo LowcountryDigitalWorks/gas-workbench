@@ -31,13 +31,16 @@ describe('Measurement feature projection boundary', () => {
     expect(() => decodeMeasurementProjection(measurementFixtureData['ready-for-assessment'], decodeWorkbenchProjection(mismatch))).toThrow('identities do not match')
   })
 
-  it('rejects duplicate IDs and dangling measurement relationships', () => {
+  it('rejects duplicate IDs, dangling links, and wrong-role measurement relationships', () => {
     const duplicate = clone(measurementFixtureData['ready-for-assessment']) as { measurements: Record<string, unknown>[] }
     duplicate.measurements[1].id = duplicate.measurements[0].id
     expect(() => parseMeasurementProjection(duplicate)).toThrow('duplicate IDs')
     const dangling = clone(measurementFixtureData['ready-for-assessment']) as { measurements: { relationship: Record<string, unknown> }[] }
     dangling.measurements[1].relationship.baselineMeasurementId = 'measurement:missing'
     expect(() => parseMeasurementProjection(dangling)).toThrow('references absent baseline')
+    const wrongRole = clone(measurementFixtureData['ready-for-assessment']) as { measurements: { id: string; relationship: Record<string, unknown> }[] }
+    wrongRole.measurements[1].relationship.baselineMeasurementId = wrongRole.measurements[1].id
+    expect(() => parseMeasurementProjection(wrongRole)).toThrow('must reference a supplied baseline measurement')
   })
 
   it('fails closed on impossible measurement result and comparability shapes', () => {
@@ -56,6 +59,10 @@ describe('Measurement feature projection boundary', () => {
     const plan = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { measurementPlan: Record<string, unknown> } }
     plan.cycle.measurementPlan.followUpMeasurementId = 'measurement:missing'
     expect(() => parseMeasurementProjection(plan)).toThrow('plan IDs must resolve')
+    const wrongPlanRoles = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { measurementPlan: Record<string, unknown> } }
+    wrongPlanRoles.cycle.measurementPlan.baselineMeasurementId = 'measurement:synthetic-follow-up'
+    wrongPlanRoles.cycle.measurementPlan.followUpMeasurementId = 'measurement:synthetic-baseline'
+    expect(() => parseMeasurementProjection(wrongPlanRoles)).toThrow('baseline/follow-up records by role')
     const interpretation = clone(measurementFixtureData['ready-for-assessment']) as { interpretations: { comparability: Record<string, unknown> }[] }
     interpretation.interpretations[0].comparability.followUpMeasurementId = 'measurement:missing'
     expect(() => parseMeasurementProjection(interpretation)).toThrow('references absent measurement records')
@@ -78,6 +85,14 @@ describe('Measurement feature projection boundary', () => {
     supplied.interpretations[0].allowedClaimCodes = ['observed_temporal_change']
     const parsed = parseMeasurementProjection(supplied)
     expect(parsed.interpretations[0]).toMatchObject({ readiness: 'blocked', claimCeiling: 'temporal_association_only', allowedClaimCodes: ['observed_temporal_change'] })
+
+    const comparableWithReason = clone(measurementFixtureData['ready-for-assessment']) as { interpretations: { designClass: string; readiness: string; claimCeiling: string; allowedClaimCodes: string[]; comparability: { state: string; reasons: string[] } }[] }
+    comparableWithReason.interpretations[0].designClass = 'ai_prompt_cohort_observation'
+    comparableWithReason.interpretations[0].readiness = 'limited'
+    comparableWithReason.interpretations[0].claimCeiling = 'descriptive_observation_only'
+    comparableWithReason.interpretations[0].allowedClaimCodes = ['exact_observation_description']
+    comparableWithReason.interpretations[0].comparability = { ...comparableWithReason.interpretations[0].comparability, state: 'comparable', reasons: ['ai_prompt_metric_semantics_required'] }
+    expect(parseMeasurementProjection(comparableWithReason).interpretations[0].comparability).toMatchObject({ state: 'comparable', reasons: ['ai_prompt_metric_semantics_required'] })
   })
 
   it('keeps observed numeric zero distinct from missing or not measured', () => {
