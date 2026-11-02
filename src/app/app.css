@@ -611,6 +611,7 @@
 .technical-diff p { margin-top: 10px; }
 .technical-url { background: var(--color-soft-white); border-radius: 5px; padding: 16px; margin-top: 16px; min-width: 0; }
 .technical-url > header { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; min-width: 0; }
+.technical-url > header .badge { flex: 0 0 auto; white-space: nowrap; }
 .technical-url > header code { min-width: 0; }
 .technical-url .facts { margin-top: 12px; }
 .technical-reference { border-top: 1px solid var(--color-border); margin-top: 18px; padding-top: 16px; min-width: 0; }
