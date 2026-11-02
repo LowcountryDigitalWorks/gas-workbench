@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "ldw.gas-workbench-technical.v1",
+  "schemaMinorVersion": 0,
+  "identity": {
+    "workspaceId": "workspace:technical-demo",
+    "tenantId": "tenant:synthetic-ldw",
+    "siteId": "site:harbor-demo",
+    "siteScopeRevisionId": "scope:technical-demo",
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-11-01T12:00:00Z",
+    "evaluatedAt": "2026-11-01T12:00:00Z"
+  },
+  "collections": [
+    {
+      "id": "collection:siteone-baseline",
+      "provider": "siteone",
+      "sourceSchema": "ldw.website-quality/v1.3",
+      "adapterMapping": "3.0.0",
+      "target": "https://harbor-demo.example",
+      "availability": "ready",
+      "completeness": "complete",
+      "reasons": [],
+      "observations": [
+        {
+          "id": "observation:siteone-title-base",
+          "code": "page-title",
+          "value": "Harbor"
+        }
+      ],
+      "method": "wqt_normalized",
+      "sourcePeriod": {
+        "end": "2026-10-28",
+        "start": "2026-10-01"
+      }
+    },
+    {
+      "id": "collection:siteone-current",
+      "provider": "siteone",
+      "sourceSchema": "ldw.website-quality/v1.3",
+      "adapterMapping": "3.0.0",
+      "target": "https://harbor-demo.example",
+      "availability": "ready",
+      "completeness": "complete",
+      "reasons": [],
+      "observations": [
+        {
+          "id": "observation:siteone-title",
+          "code": "page-title",
+          "value": "Harbor services"
+        }
+      ],
+      "method": "wqt_normalized",
+      "sourcePeriod": {
+        "end": "2026-11-01",
+        "start": "2026-10-29"
+      }
+    }
+  ],
+  "diff": {
+    "baselineCollectionId": "collection:siteone-baseline",
+    "currentCollectionId": "collection:siteone-current",
+    "summary": {
+      "total": 1,
+      "unchanged": 0,
+      "changed": 1,
+      "appeared": 0,
+      "missingFromCurrent": 0,
+      "coverageUnknown": 0,
+      "attentionCount": 1
+    },
+    "entries": [
+      {
+        "cohortHash": "cohort:page-title",
+        "state": "changed",
+        "baselineObservationId": "observation:siteone-title-base",
+        "currentObservationId": "observation:siteone-title",
+        "baselineValue": "Harbor",
+        "currentValue": "Harbor services",
+        "evidenceIdentity": "synthetic:evidence-diff:page-title",
+        "attentionId": "attention:evidence-diff:page-title"
+      }
+    ]
+  },
+  "limitations": [
+    "Only producer-supplied values and comparison are shown; no delta or cause is invented.",
+    "Synthetic public-safe evidence; no provider was called."
+  ]
+}

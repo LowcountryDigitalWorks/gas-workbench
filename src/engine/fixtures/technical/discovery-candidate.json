@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "ldw.gas-workbench-technical.v1",
+  "schemaMinorVersion": 0,
+  "identity": {
+    "workspaceId": "workspace:technical-demo",
+    "tenantId": "tenant:synthetic-ldw",
+    "siteId": "site:harbor-demo",
+    "siteScopeRevisionId": "scope:technical-demo",
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-11-01T12:00:00Z",
+    "evaluatedAt": "2026-11-01T12:00:00Z"
+  },
+  "collections": [],
+  "discovery": {
+    "scopeId": "scope:technical-demo",
+    "evaluatedAt": "2026-11-01T12:00:00Z",
+    "policyId": "policy:synthetic-discovery-1",
+    "providers": [
+      {
+        "id": "google_search_console",
+        "state": "ready",
+        "reasons": [],
+        "coverage": "complete",
+        "availability": "available",
+        "observedAt": "2026-11-01T11:00:00Z",
+        "freshThrough": "2026-11-01T11:00:00Z"
+      },
+      {
+        "id": "bing_webmaster_tools",
+        "state": "not_ready",
+        "reasons": [
+          "coverage_partial"
+        ],
+        "coverage": "partial",
+        "availability": "limited",
+        "observedAt": "2026-11-01T11:00:00Z",
+        "freshThrough": "2026-11-01T11:00:00Z"
+      }
+    ],
+    "urls": [
+      {
+        "id": "url:services",
+        "url": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow",
+        "state": "not_ready",
+        "reasons": [
+          "insufficient_ready_search_engines"
+        ],
+        "providers": [
+          {
+            "id": "google_search_console",
+            "observationState": "observed_ready",
+            "providerReadiness": "ready",
+            "reasons": [],
+            "observedAt": "2026-11-01T11:00:00Z",
+            "searchPresence": "present",
+            "canonicalState": "self_canonical",
+            "canonicalTarget": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow",
+            "httpStatus": 200
+          },
+          {
+            "id": "bing_webmaster_tools",
+            "observationState": "observed_provider_not_ready",
+            "providerReadiness": "not_ready",
+            "reasons": [
+              "coverage_partial"
+            ],
+            "observedAt": "2026-11-01T11:00:00Z",
+            "indexingPermission": "allowed"
+          }
+        ],
+        "findings": [
+          "canonical_divergence_candidate"
+        ],
+        "indexNow": {
+          "laterProviders": [],
+          "note": "IndexNow submission is notification evidence only; it does not prove or cause indexing.",
+          "state": "submission_accepted_no_later_engine_observation"
+        },
+        "searchContext": "observed",
+        "queryCount": 0,
+        "clicks": 0,
+        "impressions": 0,
+        "evidenceIdentity": "synthetic:discovery:services",
+        "attentionId": "attention:discovery:services"
+      }
+    ]
+  },
+  "limitations": [
+    "IndexNow is notification evidence only; submission does not prove or cause indexing.",
+    "Candidate findings are not priority, severity, materiality, or business impact.",
+    "Synthetic public-safe example; no provider call or write occurred."
+  ]
+}

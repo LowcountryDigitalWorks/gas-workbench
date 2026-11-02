@@ -10,10 +10,12 @@ describe('Workbench module registry', () => {
     expect(registeredModules.map((module) => module.id)).toEqual([
       'home',
       'visibility',
+      'technical',
       'evidence',
       'attention',
       'decisions',
     ])
+    expect(registeredModules.map((module) => String(module.id)).includes('discover')).toBe(false)
   })
 
   it('rejects duplicate module identifiers', () => {

@@ -21,6 +21,7 @@ export interface WorkbenchModuleDefinition {
 export const registeredModules = [
   { id: 'home', label: 'Home', description: 'Current site state.' },
   { id: 'visibility', label: 'Visibility', description: 'Source-native visibility evidence.' },
+  { id: 'technical', label: 'Technical', description: 'Technical, longitudinal, and discovery evidence.' },
   {
     id: 'evidence',
     label: 'Evidence',
