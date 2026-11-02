@@ -104,6 +104,7 @@
         "evidenceIdentity": "synthetic:discovery:services",
         "providerIds": [
           "google-search-console",
+          "bing-webmaster-tools",
           "yandex-webmaster"
         ],
         "url": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow",
