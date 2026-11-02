@@ -25,7 +25,13 @@ describe('Technical operator slice', () => {
     expect(explicitNull).toContain('Baseline: Explicit null supplied')
     const unknown = renderToStaticMarkup(<Technical projection={await loadTechnicalFixture('coverage-unknown', shell)} shell={shell} fixture="coverage-unknown" chooseFixture={noop} inspect={noop} review={noop}/> )
     expect(unknown).toContain('not proven disappearance, regression, failure, or zero')
+    expect(unknown).toContain('Baseline observation observation:siteone-baseline')
     expect(unknown).not.toContain('missing from current')
+    const unknownProjection = await loadTechnicalFixture('coverage-unknown', shell)
+    const currentOnly = { ...unknownProjection, diff: { ...unknownProjection.diff!, entries: unknownProjection.diff!.entries.map((entry) => ({ ...entry, baselineObservationId: undefined, currentObservationId: 'observation:siteone-current', currentValue: 'Harbor services' })) } }
+    const currentOnlyHtml = renderToStaticMarkup(<Technical projection={currentOnly} shell={shell} fixture="coverage-unknown" chooseFixture={noop} inspect={noop} review={noop}/> )
+    expect(currentOnlyHtml).toContain('Current observation observation:siteone-current: Harbor services. Baseline side coverage is unknown.')
+    expect(currentOnlyHtml).toContain('not proven disappearance, regression, failure, or zero')
   })
   it('keeps candidate, IndexNow notification, observed zero, and quiet context bounded', async () => {
     const html = renderToStaticMarkup(<Technical projection={await loadTechnicalFixture('discovery-candidate', shell)} shell={shell} fixture="discovery-candidate" chooseFixture={noop} inspect={noop} review={noop}/> )

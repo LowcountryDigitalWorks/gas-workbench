@@ -45,11 +45,36 @@ describe('Technical feature projection v1 minor 0', () => {
     const invalid = copy(changed); invalid.diff.entries[0].state = 'regressed'
     expect(() => parseTechnicalProjection(invalid)).toThrow('unsupported value')
     const falseAbsence = copy(coverage) as { diff: { entries: Array<Record<string, unknown>> } }; falseAbsence.diff.entries[0].currentValue = 'missing'
-    expect(() => parseTechnicalProjection(falseAbsence)).toThrow('coverage_unknown cannot assert')
+    expect(() => parseTechnicalProjection(falseAbsence)).toThrow('cannot assert a delta or an absent-side value')
     const incompatible = copy(changed); incompatible.collections[1].adapterMapping = '4.0.0'
     expect(() => parseTechnicalProjection(incompatible)).toThrow('Incompatible Technical collection identities')
     const badCount = copy(changed); badCount.diff.summary.changed = 0
     expect(() => parseTechnicalProjection(badCount)).toThrow('summary counts do not reconcile')
+  })
+  it('preserves either known side of coverage-unknown entries without asserting absence', () => {
+    expect(parseTechnicalProjection(coverage).diff?.entries[0]).toMatchObject({
+      state: 'coverage_unknown',
+      baselineObservationId: 'observation:siteone-baseline',
+    })
+    const currentOnly = copy(coverage) as typeof coverage & { collections: Array<{ completeness: string; observations: Array<{ id: string; code: string; value: string }> }>; diff: { entries: Array<Record<string, unknown>> } }
+    currentOnly.collections[0].completeness = 'unknown'
+    currentOnly.collections[0].availability = 'partial'
+    const baselineReasons = currentOnly.collections[0].reasons as string[]
+    baselineReasons.push('coverage_unknown')
+    currentOnly.collections[1].completeness = 'complete'
+    currentOnly.collections[1].observations.push({ id: 'observation:siteone-current', code: 'page-title', value: 'Harbor services' })
+    const currentEntry = currentOnly.diff.entries[0] as Record<string, unknown>
+    delete currentEntry.baselineObservationId
+    currentEntry.currentObservationId = 'observation:siteone-current'
+    currentEntry.currentValue = 'Harbor services'
+    expect(parseTechnicalProjection(currentOnly).diff?.entries[0]).toMatchObject({
+      state: 'coverage_unknown',
+      currentObservationId: 'observation:siteone-current',
+      currentValue: 'Harbor services',
+    })
+    const bothSides = copy(currentOnly)
+    bothSides.diff.entries[0].baselineObservationId = 'observation:siteone-baseline'
+    expect(() => parseTechnicalProjection(bothSides)).toThrow('coverage_unknown requires exactly one supplied-side observation')
   })
   it('enforces Discovery finding, readiness, search missingness, and IndexNow vocabularies', () => {
     const finding = copy(discovery); finding.discovery.urls[0].findings[0] = 'critical_failure'
