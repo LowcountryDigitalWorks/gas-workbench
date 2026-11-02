@@ -63,12 +63,37 @@ describe('Measurement feature projection boundary', () => {
     wrongPlanRoles.cycle.measurementPlan.baselineMeasurementId = 'measurement:synthetic-follow-up'
     wrongPlanRoles.cycle.measurementPlan.followUpMeasurementId = 'measurement:synthetic-baseline'
     expect(() => parseMeasurementProjection(wrongPlanRoles)).toThrow('baseline/follow-up records by role')
+    const danglingPlanObservation = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { measurementPlan: { target: Record<string, unknown> } } }
+    danglingPlanObservation.cycle.measurementPlan.target.baselineObservationId = 'observation:missing'
+    expect(() => parseMeasurementProjection(danglingPlanObservation)).toThrow('baseline observation must resolve')
+    const wrongSidePlanObservation = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { measurementPlan: { target: Record<string, unknown> } } }
+    wrongSidePlanObservation.cycle.measurementPlan.target.followUpObservationId = 'observation:synthetic-baseline-clicks'
+    expect(() => parseMeasurementProjection(wrongSidePlanObservation)).toThrow('follow-up observation must resolve')
     const interpretation = clone(measurementFixtureData['ready-for-assessment']) as { interpretations: { comparability: Record<string, unknown> }[] }
     interpretation.interpretations[0].comparability.followUpMeasurementId = 'measurement:missing'
     expect(() => parseMeasurementProjection(interpretation)).toThrow('references absent measurement records')
+    const swappedInterpretation = clone(measurementFixtureData['ready-for-assessment']) as { interpretations: { comparability: Record<string, unknown> }[] }
+    swappedInterpretation.interpretations[0].comparability.baselineMeasurementId = 'measurement:synthetic-follow-up'
+    swappedInterpretation.interpretations[0].comparability.followUpMeasurementId = 'measurement:synthetic-baseline'
+    expect(() => parseMeasurementProjection(swappedInterpretation)).toThrow('one linked measurement pair')
     const outcome = clone(measurementFixtureData['human-outcome']) as { outcomes: { measurementIds: string[] }[] }
     outcome.outcomes[0].measurementIds[1] = 'measurement:missing'
     expect(() => parseMeasurementProjection(outcome)).toThrow('references absent measurement')
+  })
+
+
+  it('rejects cycle readiness that contradicts supplied projected state', () => {
+    const missingOutcome = clone(measurementFixtureData['human-outcome']) as { outcomes: unknown[] }
+    missingOutcome.outcomes = []
+    expect(() => parseMeasurementProjection(missingOutcome)).toThrow('outcome_recorded requires')
+
+    const falseNotDue = clone(measurementFixtureData['follow-up-not-due']) as { measurements: Record<string, unknown>[] }
+    falseNotDue.measurements[1] = structuredClone((measurementFixtureData['ready-for-assessment'] as { measurements: Record<string, unknown>[] }).measurements[1])
+    expect(() => parseMeasurementProjection(falseNotDue)).toThrow('follow_up_not_due requires')
+
+    const falseReady = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { measurementPlan: { readiness: { state: string; reasons: string[] } } } }
+    falseReady.cycle.measurementPlan.readiness = { state: 'not_ready', reasons: ['source_not_final'] }
+    expect(() => parseMeasurementProjection(falseReady)).toThrow('ready_for_human_assessment contradicts')
   })
 
   it('keeps Release 0.22 vocabularies strict without recomputing interpretation mappings', () => {

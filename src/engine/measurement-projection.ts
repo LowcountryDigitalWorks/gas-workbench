@@ -166,15 +166,32 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
     if (baseline === undefined) fail(`Follow-up measurement ${m.id} references absent baseline ${m.relationship.baselineMeasurementId}.`)
     if (baseline.relationship.role !== 'baseline') fail(`Follow-up measurement ${m.id} must reference a supplied baseline measurement.`)
   }
+  let planBaseline: MeasurementFeatureProjection['measurements'][number] | undefined
+  let planFollowUp: MeasurementFeatureProjection['measurements'][number] | undefined
   if (measurementPlan) {
-    const baseline = measurementsById.get(measurementPlan.baselineMeasurementId)
-    const followUp = measurementsById.get(measurementPlan.followUpMeasurementId)
-    if (baseline === undefined || followUp === undefined) fail('Measurement plan IDs must resolve to supplied measurement records.')
-    if (baseline.relationship.role !== 'baseline' || followUp.relationship.role !== 'follow_up') fail('Measurement plan IDs must resolve to baseline/follow-up records by role.')
+    planBaseline = measurementsById.get(measurementPlan.baselineMeasurementId)
+    planFollowUp = measurementsById.get(measurementPlan.followUpMeasurementId)
+    if (planBaseline === undefined || planFollowUp === undefined) fail('Measurement plan IDs must resolve to supplied measurement records.')
+    if (planBaseline.relationship.role !== 'baseline' || planFollowUp.relationship.role !== 'follow_up') fail('Measurement plan IDs must resolve to baseline/follow-up records by role.')
+    if (planFollowUp.relationship.baselineMeasurementId !== planBaseline.id) fail('Measurement plan follow-up must link to the selected baseline measurement.')
+    if (planBaseline.result.state !== 'measured' || !planBaseline.result.observations.some((item) => item.id === measurementPlan.target.baselineObservationId)) fail('Measurement plan baseline observation must resolve to the selected baseline measurement.')
+    if (measurementPlan.target.followUpObservationId !== undefined && (planFollowUp.result.state !== 'measured' || !planFollowUp.result.observations.some((item) => item.id === measurementPlan.target.followUpObservationId))) fail('Measurement plan follow-up observation must resolve to the selected follow-up measurement.')
   }
   for (const outcome of outcomes) for (const id of outcome.measurementIds) if (!measurementsById.has(id)) fail(`Outcome ${outcome.id} references absent measurement ${id}.`)
-  for (const profile of interpretations) if (!measurementsById.has(profile.comparability.baselineMeasurementId) || !measurementsById.has(profile.comparability.followUpMeasurementId)) fail(`Interpretation ${profile.id} references absent measurement records.`)
-  return { schemaVersion: MEASUREMENT_SCHEMA_VERSION, schemaMinorVersion: MEASUREMENT_SCHEMA_MINOR_VERSION, identity: identity(root.identity), cycle: { dossierId: str(cycleRaw.dossierId, 'measurement.cycle.dossierId'), sourceServiceBriefId: str(cycleRaw.sourceServiceBriefId, 'measurement.cycle.sourceServiceBriefId'), decision: { id: str(decisionRaw.id, 'measurement.cycle.decision.id'), disposition: en(decisionRaw.disposition, ['investigate', 'recommend', 'defer', 'dismiss'] as const, 'measurement.cycle.decision.disposition'), summary: str(decisionRaw.summary, 'measurement.cycle.decision.summary'), recordedAt: str(decisionRaw.recordedAt, 'measurement.cycle.decision.recordedAt') }, readiness, ...(measurementPlan ? { measurementPlan } : {}) }, measurements, outcomes, interpretations, authorityNotes: strings(root.authorityNotes, 'measurement.authorityNotes'), limitations: strings(root.limitations, 'measurement.limitations') }
+  for (const profile of interpretations) {
+    const baseline = measurementsById.get(profile.comparability.baselineMeasurementId)
+    const followUp = measurementsById.get(profile.comparability.followUpMeasurementId)
+    if (baseline === undefined || followUp === undefined) fail(`Interpretation ${profile.id} references absent measurement records.`)
+    if (baseline.relationship.role !== 'baseline' || followUp.relationship.role !== 'follow_up' || followUp.relationship.baselineMeasurementId !== baseline.id) fail(`Interpretation ${profile.id} baseline/follow-up references must resolve to one linked measurement pair.`)
+  }
+  if (readiness.state === 'outcome_recorded' && outcomes.length === 0) fail('outcome_recorded requires a supplied human outcome.')
+  if (readiness.state === 'follow_up_not_due' && (planFollowUp === undefined || planFollowUp.result.state !== 'not_due')) fail('follow_up_not_due requires a supplied not_due follow-up measurement.')
+  if (readiness.state === 'follow_up_not_measured' && (planFollowUp === undefined || planFollowUp.result.state !== 'not_measured')) fail('follow_up_not_measured requires a supplied not_measured follow-up measurement.')
+  if (readiness.state === 'follow_up_not_comparable' && (planFollowUp === undefined || planFollowUp.result.state !== 'measured' || planFollowUp.comparability.state === 'comparable')) fail('follow_up_not_comparable requires a measured non-comparable follow-up measurement.')
+  if (readiness.state === 'ready_for_human_assessment' && (measurementPlan?.readiness.state !== 'ready_for_human_assessment' || planFollowUp?.result.state !== 'measured' || planFollowUp.comparability.state !== 'comparable' || outcomes.length > 0)) fail('ready_for_human_assessment contradicts the supplied plan, follow-up, or outcome state.')
+  const decisionDisposition = en(decisionRaw.disposition, ['investigate', 'recommend', 'defer', 'dismiss'] as const, 'measurement.cycle.decision.disposition')
+  if (readiness.state === 'deferred_or_dismissed' && decisionDisposition !== 'defer' && decisionDisposition !== 'dismiss') fail('deferred_or_dismissed requires a defer or dismiss decision.')
+  return { schemaVersion: MEASUREMENT_SCHEMA_VERSION, schemaMinorVersion: MEASUREMENT_SCHEMA_MINOR_VERSION, identity: identity(root.identity), cycle: { dossierId: str(cycleRaw.dossierId, 'measurement.cycle.dossierId'), sourceServiceBriefId: str(cycleRaw.sourceServiceBriefId, 'measurement.cycle.sourceServiceBriefId'), decision: { id: str(decisionRaw.id, 'measurement.cycle.decision.id'), disposition: decisionDisposition, summary: str(decisionRaw.summary, 'measurement.cycle.decision.summary'), recordedAt: str(decisionRaw.recordedAt, 'measurement.cycle.decision.recordedAt') }, readiness, ...(measurementPlan ? { measurementPlan } : {}) }, measurements, outcomes, interpretations, authorityNotes: strings(root.authorityNotes, 'measurement.authorityNotes'), limitations: strings(root.limitations, 'measurement.limitations') }
 }
 
 export function decodeMeasurementProjection(input: unknown, shell: WorkbenchProjection): MeasurementFeatureProjection {
