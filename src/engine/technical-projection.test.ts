@@ -81,10 +81,7 @@ describe('Technical feature projection v1 minor 0', () => {
     transformedLaterProvider.discovery.urls[0].indexNow.laterProviders = ['google_search_console']
     expect(() => parseTechnicalProjection(transformedLaterProvider)).toThrow('unsupported value')
 
-    const yandex = copy(discovery) as unknown as MutableDiscovery
-    yandex.discovery.providers[1].id = 'yandex-webmaster'
-    yandex.discovery.urls[0].providers[1].id = 'yandex-webmaster'
-    expect(parseTechnicalProjection(yandex).discovery?.urls[0].providers[1].id).toBe('yandex-webmaster')
+    expect(parseTechnicalProjection(discovery).discovery?.providers.map((provider) => provider.id)).toContain('yandex-webmaster')
   })
   it('rejects Discovery state values outside accepted engine vocabularies', () => {
     type MutableUrlProvider = { discovery: { urls: Array<{ providers: Array<Record<string, unknown>> }> } }
@@ -100,9 +97,51 @@ describe('Technical feature projection v1 minor 0', () => {
       expect(() => parseTechnicalProjection(candidate)).toThrow('unsupported value')
     }
   })
-  it('rejects URL readiness contradictions and duplicate Discovery source IDs', () => {
+  it('preserves valid URL readiness combinations and rejects actual observation contradictions', () => {
+    const validMixedReadiness = parseTechnicalProjection(discovery)
+    expect(validMixedReadiness.discovery?.urls[0].state).toBe('ready')
+    expect(validMixedReadiness.discovery?.urls[0].providers[1].observationState).toBe('observed_provider_not_ready')
+
     const mismatch = copy(discovery); mismatch.discovery.urls[0].providers[0].providerReadiness = 'not_ready'
     expect(() => parseTechnicalProjection(mismatch)).toThrow('contradicts URL observation state')
+
+    type MutableUrlProvider = { discovery: { urls: Array<{ providers: Array<Record<string, unknown>> }> } }
+    const notObservedWithFields = copy(discovery) as unknown as MutableUrlProvider
+    notObservedWithFields.discovery.urls[0].providers[1].observationState = 'not_observed'
+    expect(() => parseTechnicalProjection(notObservedWithFields)).toThrow('not_observed cannot carry URL observation fields')
+
+    const validNotObserved = copy(discovery) as unknown as MutableUrlProvider
+    const provider = validNotObserved.discovery.urls[0].providers[1]
+    provider.observationState = 'not_observed'
+    delete provider.searchPresence
+    delete provider.crawlState
+    delete provider.indexingPermission
+    delete provider.canonicalState
+    expect(() => parseTechnicalProjection(validNotObserved)).not.toThrow()
+  })
+  it('rejects impossible Discovery finding and observed-search combinations', () => {
+    const notReadyWithFinding = copy(discovery)
+    notReadyWithFinding.discovery.urls[0].state = 'not_ready'
+    expect(() => parseTechnicalProjection(notReadyWithFinding)).toThrow('not_ready cannot carry Discovery findings')
+
+    const conflictingFinding = copy(discovery)
+    conflictingFinding.discovery.urls[0].findings.push('no_cross_engine_divergence_observed')
+    expect(() => parseTechnicalProjection(conflictingFinding)).toThrow('cannot coexist with candidate findings')
+
+    const zeroQueries = copy(discovery)
+    zeroQueries.discovery.urls[0].queryCount = 0
+    expect(() => parseTechnicalProjection(zeroQueries)).toThrow('requires at least one observed query row')
+  })
+  it('keeps IndexNow notification context internally coherent and bounded', () => {
+    const mismatchedResult = copy(discovery)
+    mismatchedResult.discovery.urls[0].indexNow.submissionResult = 'rejected'
+    expect(() => parseTechnicalProjection(mismatchedResult)).toThrow('submissionResult contradicts state')
+
+    const badStatus = copy(discovery)
+    badStatus.discovery.urls[0].indexNow.resultCode = 99
+    expect(() => parseTechnicalProjection(badStatus)).toThrow('HTTP status')
+  })
+  it('rejects duplicate Discovery source IDs', () => {
     const duplicate = copy(discovery); duplicate.discovery.providers.push(copy(duplicate.discovery.providers[0]))
     expect(() => parseTechnicalProjection(duplicate)).toThrow('Duplicate Discovery provider ID')
     const duplicateUrl = copy(discovery); duplicateUrl.discovery.urls.push(copy(duplicateUrl.discovery.urls[0]))
