@@ -31,7 +31,7 @@ describe('Technical operator slice', () => {
     const html = renderToStaticMarkup(<Technical projection={await loadTechnicalFixture('discovery-candidate', shell)} shell={shell} fixture="discovery-candidate" chooseFixture={noop} inspect={noop} review={noop}/> )
     expect(html).toContain('canonical divergence candidate')
     expect(html).toContain('notification evidence only')
-    expect(html).toContain('0 queries, 0 clicks, 0 impressions')
+    expect(html).toContain('1 queries, 0 clicks, 5 impressions')
     expect(html).toContain('attention:discovery:services')
     expect(html).toContain('very-long-synthetic-reference-that-wraps')
     const quiet = renderToStaticMarkup(<Technical projection={await loadTechnicalFixture('quiet', shell)} shell={shell} fixture="quiet" chooseFixture={noop} inspect={noop} review={noop}/> )
