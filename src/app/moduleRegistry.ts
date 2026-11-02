@@ -19,10 +19,21 @@ export interface WorkbenchModuleDefinition {
 }
 
 export const registeredModules = [
+  { id: 'home', label: 'Home', description: 'Current site state.' },
   {
-    id: 'home',
-    label: 'Home',
-    description: 'Current Workbench context and trusted product boundary.',
+    id: 'evidence',
+    label: 'Evidence',
+    description: 'Source readiness and exact provenance.',
+  },
+  {
+    id: 'attention',
+    label: 'Attention',
+    description: 'Unranked human review.',
+  },
+  {
+    id: 'decisions',
+    label: 'Decision',
+    description: 'Human draft and supplied decision context.',
   },
 ] as const satisfies readonly WorkbenchModuleDefinition[]
 
