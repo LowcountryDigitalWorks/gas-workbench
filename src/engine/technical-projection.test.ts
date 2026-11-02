@@ -55,6 +55,15 @@ describe('Technical feature projection v1 minor 0', () => {
     danglingBaseline.diff.entries[0].baselineObservationId = 'observation:absent'
     expect(() => parseTechnicalProjection(danglingBaseline)).toThrow('absent from baseline collection')
 
+    const omittedDisplayValues = copy(changed) as { diff: { entries: Array<Record<string, unknown>> } }
+    delete omittedDisplayValues.diff.entries[0].baselineValue
+    delete omittedDisplayValues.diff.entries[0].currentValue
+    expect(parseTechnicalProjection(omittedDisplayValues).diff?.entries[0]).toMatchObject({
+      state: 'changed',
+      baselineObservationId: 'observation:siteone-title-base',
+      currentObservationId: 'observation:siteone-title',
+    })
+
     const mismatchedCurrentValue = copy(changed)
     mismatchedCurrentValue.diff.entries[0].currentValue = 'Disconnected supplied value'
     expect(() => parseTechnicalProjection(mismatchedCurrentValue)).toThrow('current value does not match observation')
