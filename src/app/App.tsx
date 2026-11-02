@@ -7,6 +7,10 @@ import { Home } from '../modules/home/Home'
 import { Evidence } from '../modules/evidence/Evidence'
 import { Attention } from '../modules/attention/Attention'
 import { DecisionDraft } from '../modules/decisions/DecisionDraft'
+import { Visibility } from '../modules/visibility/Visibility'
+import { loadVisibilityFixture } from '../engine/visibilityFixtures'
+import type { VisibilityFeatureProjection } from '../engine/visibility-projection'
+import type { VisibilityFixtureId } from '../engine/visibilityFixtures'
 import type { Draft } from '../modules/decisions/DecisionDraft'
 import { fixtureIds, loadFixture } from './fixtures'
 import type { FixtureId } from './fixtures'
@@ -15,12 +19,14 @@ const views = registeredModules.map((module) => module.id)
 type View = (typeof views)[number]
 const labels = {
   home: 'Home',
+  visibility: 'Visibility',
   evidence: 'Evidence',
   attention: 'Attention',
   decisions: 'Decision',
 }
 const icons = {
   home: 'home',
+  visibility: 'chart-bar',
   evidence: 'file-description',
   attention: 'search',
   decisions: 'notes',
@@ -29,6 +35,7 @@ const cases = {
   quiet: 'Quiet',
   limited: 'Limited evidence',
   'human-review': 'Human review',
+  'visibility-review': 'Visibility review',
 }
 const emptyDraft = { rationale: '', disposition: 'Request review' }
 export function App() {
@@ -39,6 +46,8 @@ export function App() {
     error?: string
   }>({})
   const [retry, setRetry] = useState(0)
+  const [visibilityCase, setVisibilityCase] = useState<VisibilityFixtureId>('comparable-search')
+  const [visibility, setVisibility] = useState<{ value?: VisibilityFeatureProjection; error?: string }>({})
   const [selected, setSelected] = useState<string | undefined>()
   const [attention, setAttention] = useState<string | undefined>()
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
@@ -66,8 +75,25 @@ export function App() {
     }
   }, [fixture, retry])
   const projection = result.projection
+  useEffect(() => {
+    if (!projection) return
+    let active = true
+    loadVisibilityFixture(visibilityCase, projection).then((value) => {
+      if (active) setVisibility({ value })
+    }).catch((error) => {
+      if (active) setVisibility({ error: error instanceof Error ? error.message : 'Visibility projection unavailable.' })
+    })
+    return () => { active = false }
+  }, [projection, visibilityCase])
   const w = projection?.workspace
   function navigate(next: View) {
+    if (next === 'visibility' && fixture !== 'visibility-review') {
+      setFixture('visibility-review')
+      setResult({})
+      setSelected(undefined)
+      setAttention(undefined)
+      setVisibility({})
+    }
     setView(next)
     requestAnimationFrame(() =>
       mainHeading.current?.focus({ preventScroll: true }),
@@ -91,6 +117,7 @@ export function App() {
   }
   const captions = {
     home: 'Current site state',
+    visibility: 'Source-specific evidence and comparability',
     evidence: `${w?.sourceManifest.length ?? '…'} supplied sources`,
     attention: `${w?.attention.length ?? '…'} unranked items`,
     decisions: 'Human draft / supplied context',
@@ -165,6 +192,8 @@ export function App() {
             <h1 tabIndex={-1} ref={mainHeading}>
               {view === 'home'
                 ? 'Current state'
+                : view === 'visibility'
+                  ? 'Visibility evidence'
                 : view === 'evidence'
                   ? 'Source Atlas'
                   : view === 'attention'
@@ -237,6 +266,19 @@ export function App() {
                   navigate('attention')
                 }}
               />
+            )}
+            {view === 'visibility' && (
+              visibility.value ? <Visibility
+                projection={visibility.value}
+                shell={projection}
+                fixture={visibilityCase}
+                chooseFixture={setVisibilityCase}
+                inspect={(moduleId) => inspect(moduleId)}
+                review={(id) => { setAttention(id); navigate('attention') }}
+              /> : <section className="error-state" role={visibility.error ? 'alert' : 'status'}>
+                <h2>{visibility.error ? 'Visibility unavailable' : 'Checking Visibility projection'}</h2>
+                <p>{visibility.error ?? 'Validating source and workspace identity…'}</p>
+              </section>
             )}
             {view === 'evidence' && (
               <Evidence

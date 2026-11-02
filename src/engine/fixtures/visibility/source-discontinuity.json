@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "ldw.gas-workbench-visibility.v1",
+  "schemaMinorVersion": 0,
+  "identity": { "workspaceId": "workspace:synthetic-visibility-review-001", "tenantId": "tenant:synthetic-ldw", "siteId": "site:harbor-demo", "siteScopeRevisionId": "scope-revision:visibility-review-001", "trustedTarget": "https://harbor-demo.example", "generatedAt": "2026-10-31T14:10:00Z", "evaluatedAt": "2026-10-31T14:10:00Z" },
+  "sources": [
+    { "id": "search-discontinuous", "family": "organic_search", "provider": "Google Search Console", "identity": "synthetic:search-performance:web-universe-change", "release": "0.10+0.24", "readiness": "limited", "reasons": ["source_universe_changed"], "period": "Baseline and current periods supplied", "freshness": "final", "coverage": "complete", "modality": "text_based", "baselineModality": "legacy_subtype_not_established", "metrics": [{ "name": "Clicks", "unit": "clicks", "baseline": 80, "current": 104 }, { "name": "Impressions", "unit": "impressions", "baseline": 1200, "current": 1500 }], "comparison": "incompatible", "comparisonReasons": ["web_modality_changed", "minor_version_changed"], "limitations": ["Numbers are shown as supplied; the engine marked these source universes incompatible."] },
+    { "id": "ai-visibility", "family": "ai_visibility", "provider": "ZeroRank", "identity": "synthetic:zerorank:cohort-october", "release": "0.14", "readiness": "not_supplied", "reasons": [], "metrics": [], "comparison": "not_supplied", "comparisonReasons": [], "limitations": ["No provider evidence supplied."] }
+  ],
+  "claimCeiling": "not_interpretable",
+  "limitations": ["Comparison unavailable — source universe changed.", "Do not interpret the numeric periods as a valid trend."]
+}

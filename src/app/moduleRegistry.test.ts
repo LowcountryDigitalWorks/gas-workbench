@@ -9,6 +9,7 @@ describe('Workbench module registry', () => {
   it('registers only implemented slice modules', () => {
     expect(registeredModules.map((module) => module.id)).toEqual([
       'home',
+      'visibility',
       'evidence',
       'attention',
       'decisions',
