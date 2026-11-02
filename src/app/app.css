@@ -662,6 +662,9 @@ dialog li {
     gap: var(--space-4);
     padding: var(--space-5);
   }
+  .workspace-heading {
+    flex-basis: 100%;
+  }
   .fixture-picker {
     max-width: 100%;
     border-left: 0;
@@ -712,9 +715,6 @@ dialog li {
 @media (max-width: 760px) {
   .workbench-shell {
     grid-template-columns: 1fr;
-  }
-  .workspace-heading {
-    flex-basis: 100%;
   }
   .global-header {
     gap: var(--space-3);
