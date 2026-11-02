@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "ldw.gas-workbench-visibility.v1",
+  "schemaMinorVersion": 0,
+  "identity": { "workspaceId": "workspace:synthetic-visibility-review-001", "tenantId": "tenant:synthetic-ldw", "siteId": "site:harbor-demo", "siteScopeRevisionId": "scope-revision:visibility-review-001", "trustedTarget": "https://harbor-demo.example", "generatedAt": "2026-10-31T14:10:00Z", "evaluatedAt": "2026-10-31T14:10:00Z" },
+  "sources": [
+    { "id": "search-ready", "family": "organic_search", "provider": "Google Search Console", "identity": "synthetic:search-performance:multimodal", "release": "0.24", "readiness": "ready", "reasons": [], "period": "2026-10-01–2026-10-28", "freshness": "final", "coverage": "complete", "sourceUniverse": "search_performance_minor1", "modality": "multimodal", "metrics": [{ "name": "Clicks", "unit": "clicks", "current": 42 }], "comparison": "not_supplied", "comparisonReasons": [], "limitations": ["No baseline/current pair was supplied."] },
+    { "id": "ai-not-supplied", "family": "ai_visibility", "provider": "Bing Webmaster Tools", "identity": "synthetic:bing-ai:not-supplied", "release": "0.14", "readiness": "not_supplied", "reasons": [], "metrics": [], "comparison": "not_supplied", "comparisonReasons": [], "limitations": ["AI Visibility was not supplied; this does not invalidate Search Analytics evidence."] }
+  ],
+  "claimCeiling": "descriptive_observation_only",
+  "limitations": ["Source availability is shown independently; no global health conclusion is inferred."]
+}

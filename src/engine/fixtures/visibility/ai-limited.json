@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "ldw.gas-workbench-visibility.v1",
+  "schemaMinorVersion": 0,
+  "identity": { "workspaceId": "workspace:synthetic-visibility-review-001", "tenantId": "tenant:synthetic-ldw", "siteId": "site:harbor-demo", "siteScopeRevisionId": "scope-revision:visibility-review-001", "trustedTarget": "https://harbor-demo.example", "generatedAt": "2026-10-31T14:10:00Z", "evaluatedAt": "2026-10-31T14:10:00Z" },
+  "sources": [
+    { "id": "search-limited", "family": "organic_search", "provider": "Google Search Console", "identity": "synthetic:search-performance:legacy-october", "release": "0.10", "readiness": "limited", "reasons": ["coverage_partial"], "period": "2026-10-01–2026-10-28", "freshness": "final", "coverage": "partial; sample incomplete", "sourceUniverse": "legacy_generic_web", "modality": "legacy_subtype_not_established", "metrics": [{ "name": "Clicks", "unit": "clicks", "current": 0 }], "comparison": "not_supplied", "comparisonReasons": [], "limitations": ["Legacy Web subtype was not established by the source.", "Observed zero is distinct from unavailable evidence."] },
+    { "id": "ai-bing", "family": "ai_visibility", "provider": "Bing Webmaster Tools", "identity": "synthetic:bing-ai:cohort-a", "release": "0.14", "readiness": "limited", "reasons": ["sampled_observations"], "period": "2026-10", "coverage": "limited, sampled observations", "metrics": [{ "name": "Citations", "unit": "citations", "current": 3 }, { "name": "Cited pages", "unit": "pages", "current": 2 }], "comparison": "not_supplied", "comparisonReasons": [], "concentration": { "numerator": 2, "denominator": 5, "share": 0.4, "policy": "sampled-citation-share-v1" }, "limitations": ["Provider-native sampled observations are non-exhaustive."] },
+    { "id": "ai-zerorank", "family": "ai_visibility", "provider": "ZeroRank", "identity": "synthetic:zerorank:cohort-a", "release": "0.14", "readiness": "unavailable", "reasons": ["not_observed"], "metrics": [{ "name": "Share of supplied cohort", "unit": "percent" }], "comparison": "not_supplied", "comparisonReasons": [], "limitations": ["Metric value unavailable; it is not zero and is not comparable across providers."] }
+  ],
+  "claimCeiling": "descriptive_observation_only",
+  "limitations": ["Provider measurements remain separate; no universal Visibility score is computed."]
+}

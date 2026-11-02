@@ -93,6 +93,19 @@ There is no best-effort version coercion.
 
 ## Future live transport
 
+### Visibility feature projection
+
+The Visibility slice uses a separate checked feature boundary:
+
+- schema `ldw.gas-workbench-visibility.v1`, minor `0`;
+- `parseVisibilityProjection(...)` rejects unknown fields, unsupported schema/version and unsupported Web modality values;
+- `decodeVisibilityProjection(...)` additionally binds workspace, tenant/site/scope, target, and snapshot timestamps to the accepted shell projection and verifies any claimed evidence/Attention references;
+- the UI consumes decoded feature state and leaves comparison, readiness, concentration, and claim-ceiling semantics with the supplied producer.
+
+The checked fixtures under `fixtures/visibility/` are synthetic/public-safe examples. `visibility-review.json` supplies one engine-plausible unranked Search Analytics Attention item for exact Visibility → Evidence → Attention → Decision handoff coverage. The original shell projection v1/minor0 contract is unchanged.
+
+Visibility browser UI does not retrieve providers or mutate source/account state. A missing metric remains “Not supplied”; numeric zero remains an explicit value. Provider-specific observations remain separate.
+
 A later accepted runtime may supply the same projection through a generated artifact, package client, or HTTP/API transport. Feature modules should depend on the decoded Workbench projection rather than provider SDKs or raw `gas-engine` internals, so transport can evolve without moving semantic authority into the UI.
 
 The preferred future hardening path is an **engine-owned deterministic projection exporter** (or generated schema/type artifact) so checked Workbench fixtures can be reproduced directly from accepted synthetic engine workspaces. That is not required to make the first product UI depend on a backend.
