@@ -15,6 +15,10 @@ import { loadTechnicalFixture } from '../engine/technicalFixtures'
 import type { TechnicalFixtureId } from '../engine/technicalFixtures'
 import type { TechnicalProjection } from '../engine/technical-projection'
 import { Technical } from '../modules/technical/Technical'
+import { Measurement } from '../modules/measurement/Measurement'
+import { loadMeasurementFixture } from '../engine/measurementFixtures'
+import type { MeasurementFixtureId } from '../engine/measurementFixtures'
+import type { MeasurementFeatureProjection } from '../engine/measurement-projection'
 import type { Draft } from '../modules/decisions/DecisionDraft'
 import { fixtureIds, loadFixture } from './fixtures'
 import type { FixtureId } from './fixtures'
@@ -28,6 +32,7 @@ const labels = {
   evidence: 'Evidence',
   attention: 'Attention',
   decisions: 'Decision',
+  measurement: 'Measure / Outcomes',
 }
 const icons = {
   home: 'home',
@@ -36,6 +41,7 @@ const icons = {
   evidence: 'file-description',
   attention: 'search',
   decisions: 'notes',
+  measurement: 'chart-bar',
 }
 const cases = {
   quiet: 'Quiet',
@@ -57,6 +63,8 @@ export function App() {
   const [visibility, setVisibility] = useState<{ value?: VisibilityFeatureProjection; error?: string }>({})
   const [technicalCase, setTechnicalCase] = useState<TechnicalFixtureId>('ready')
   const [technical, setTechnical] = useState<{ value?: TechnicalProjection; error?: string }>({})
+  const [measurementCase, setMeasurementCase] = useState<MeasurementFixtureId>('follow-up-not-due')
+  const [measurement, setMeasurement] = useState<{ value?: MeasurementFeatureProjection; error?: string }>({})
   const [selected, setSelected] = useState<string | undefined>()
   const [attention, setAttention] = useState<string | undefined>()
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
@@ -100,6 +108,16 @@ export function App() {
     loadTechnicalFixture(technicalCase, projection).then((value) => { if (active) setTechnical({ value }) }).catch((error) => { if (active) setTechnical({ error: error instanceof Error ? error.message : 'Technical projection unavailable.' }) })
     return () => { active = false }
   }, [projection, technicalCase])
+  useEffect(() => {
+    if (!projection || fixture !== 'human-review') return
+    let active = true
+    loadMeasurementFixture(measurementCase, projection).then((value) => {
+      if (active) setMeasurement({ value })
+    }).catch((error) => {
+      if (active) setMeasurement({ error: error instanceof Error ? error.message : 'Measurement projection unavailable.' })
+    })
+    return () => { active = false }
+  }, [projection, fixture, measurementCase])
   const w = projection?.workspace
   function navigate(next: View) {
     if (next === 'technical' && fixture !== 'technical-review') {
@@ -115,6 +133,13 @@ export function App() {
       setSelected(undefined)
       setAttention(undefined)
       setVisibility({})
+    }
+    if (next === 'measurement' && fixture !== 'human-review') {
+      setFixture('human-review')
+      setResult({})
+      setSelected(undefined)
+      setAttention(undefined)
+      setMeasurement({})
     }
     setView(next)
     requestAnimationFrame(() =>
@@ -144,6 +169,7 @@ export function App() {
     evidence: `${w?.sourceManifest.length ?? '…'} supplied sources`,
     attention: `${w?.attention.length ?? '…'} unranked items`,
     decisions: 'Human draft / supplied context',
+    measurement: measurement.value ? measurement.value.cycle.readiness.state.replaceAll('_', ' ') : 'Measurement cycle',
   }
   return (
     <div className="workbench-shell">
@@ -187,18 +213,6 @@ export function App() {
             </button>
           ))}
           <div className="nav-unavailable">
-            <Icon name="chart-bar" />
-            <span>
-              <strong>Measurement</strong>
-              <small>
-                {w?.decisionCycle
-                  ? w.decisionCycle.readiness.state.replaceAll('_', ' ')
-                  : 'Not supplied'}{' '}
-                • view unavailable
-              </small>
-            </span>
-          </div>
-          <div className="nav-unavailable">
             <Icon name="report" />
             <span>
               <strong>Report</strong>
@@ -219,6 +233,8 @@ export function App() {
                   ? 'Visibility evidence'
                 : view === 'technical'
                   ? 'Technical evidence'
+                : view === 'measurement'
+                  ? 'Measure / Outcomes'
                 : view === 'evidence'
                   ? 'Source Atlas'
                   : view === 'attention'
@@ -307,6 +323,9 @@ export function App() {
             )}
             {view === 'technical' && (
               technical.value ? <Technical projection={technical.value} shell={projection} fixture={technicalCase} chooseFixture={setTechnicalCase} inspect={(moduleId) => inspect(moduleId)} review={(id) => { setAttention(id); navigate('attention') }} /> : <section className="error-state" role={technical.error ? 'alert' : 'status'}><h2>{technical.error ? 'Technical unavailable' : 'Checking Technical projection'}</h2><p>{technical.error ?? 'Validating source and workspace identity…'}</p></section>
+            )}
+            {view === 'measurement' && (
+              measurement.value ? <Measurement projection={measurement.value} fixture={measurementCase} chooseFixture={(id) => { setMeasurementCase(id); setMeasurement({}) }} /> : <section className="error-state" role={measurement.error ? 'alert' : 'status'}><h2>{measurement.error ? 'Measure / Outcomes unavailable' : 'Checking measurement projection'}</h2><p>{measurement.error ?? 'Validating measurement-cycle identity and supplied semantics…'}</p></section>
             )}
             {view === 'evidence' && (
               <Evidence

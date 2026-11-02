@@ -37,6 +37,11 @@ export const registeredModules = [
     label: 'Decision',
     description: 'Human draft and supplied decision context.',
   },
+  {
+    id: 'measurement',
+    label: 'Measure / Outcomes',
+    description: 'Measurement readiness, interpretation limits, and human outcomes.',
+  },
 ] as const satisfies readonly WorkbenchModuleDefinition[]
 
 export function validateModuleRegistry(
