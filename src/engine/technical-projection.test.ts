@@ -62,6 +62,44 @@ describe('Technical feature projection v1 minor 0', () => {
     expect(() => parseTechnicalProjection(falseIndexing)).toThrow('unsupported value')
     expect(parseTechnicalProjection(discovery).discovery?.urls[0].clicks).toBe(0)
   })
+  it('preserves exact Discovery provider namespaces and rejects transformed or WQT provider IDs', () => {
+    type MutableDiscovery = { discovery: { providers: Array<Record<string, unknown>>; urls: Array<{ providers: Array<Record<string, unknown>>; indexNow: Record<string, unknown> }> } }
+    const transformed = copy(discovery) as unknown as MutableDiscovery
+    transformed.discovery.providers[0].id = 'google_search_console'
+    expect(() => parseTechnicalProjection(transformed)).toThrow('unsupported value')
+
+    const mixed = copy(discovery) as unknown as MutableDiscovery
+    mixed.discovery.providers[0].id = 'siteone'
+    expect(() => parseTechnicalProjection(mixed)).toThrow('unsupported value')
+
+    const unknown = copy(discovery) as unknown as MutableDiscovery
+    unknown.discovery.urls[0].providers[0].id = 'google'
+    expect(() => parseTechnicalProjection(unknown)).toThrow('unsupported value')
+
+    const transformedLaterProvider = copy(discovery) as unknown as MutableDiscovery
+    transformedLaterProvider.discovery.urls[0].indexNow.state = 'submission_accepted_later_present_observed'
+    transformedLaterProvider.discovery.urls[0].indexNow.laterProviders = ['google_search_console']
+    expect(() => parseTechnicalProjection(transformedLaterProvider)).toThrow('unsupported value')
+
+    const yandex = copy(discovery) as unknown as MutableDiscovery
+    yandex.discovery.providers[1].id = 'yandex-webmaster'
+    yandex.discovery.urls[0].providers[1].id = 'yandex-webmaster'
+    expect(parseTechnicalProjection(yandex).discovery?.urls[0].providers[1].id).toBe('yandex-webmaster')
+  })
+  it('rejects Discovery state values outside accepted engine vocabularies', () => {
+    type MutableUrlProvider = { discovery: { urls: Array<{ providers: Array<Record<string, unknown>> }> } }
+    const invalidStates: Record<string, string> = {
+      searchPresence: 'indexed',
+      crawlState: 'ok',
+      indexingPermission: 'permitted',
+      canonicalState: 'self_canonical',
+    }
+    for (const [field, invalidValue] of Object.entries(invalidStates)) {
+      const candidate = copy(discovery) as unknown as MutableUrlProvider
+      candidate.discovery.urls[0].providers[0][field] = invalidValue
+      expect(() => parseTechnicalProjection(candidate)).toThrow('unsupported value')
+    }
+  })
   it('rejects URL readiness contradictions and duplicate Discovery source IDs', () => {
     const mismatch = copy(discovery); mismatch.discovery.urls[0].providers[0].providerReadiness = 'not_ready'
     expect(() => parseTechnicalProjection(mismatch)).toThrow('contradicts URL observation state')
