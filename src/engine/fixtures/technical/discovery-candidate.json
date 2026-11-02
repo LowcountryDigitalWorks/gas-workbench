@@ -102,7 +102,7 @@
           "laterProviders": [],
           "note": "IndexNow submission is notification evidence only; it does not prove or cause indexing.",
           "state": "submission_accepted_no_later_engine_observation",
-          "submittedAt": "2026-11-01T10:00:00Z",
+          "submittedAt": "2026-11-01T11:30:00Z",
           "submissionResult": "accepted",
           "resultCode": 200
         },

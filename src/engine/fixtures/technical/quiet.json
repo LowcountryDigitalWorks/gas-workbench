@@ -15,14 +15,60 @@
     "scopeId": "scope:technical-demo",
     "evaluatedAt": "2026-11-01T12:00:00Z",
     "policyId": "policy:synthetic-discovery-1",
-    "providers": [],
+    "providers": [
+      {
+        "id": "google-search-console",
+        "state": "ready",
+        "reasons": [],
+        "coverage": "complete",
+        "availability": "available",
+        "observedAt": "2026-11-01T11:00:00Z",
+        "freshThrough": "2026-11-01T11:00:00Z"
+      },
+      {
+        "id": "yandex-webmaster",
+        "state": "ready",
+        "reasons": [],
+        "coverage": "complete",
+        "availability": "available",
+        "observedAt": "2026-11-01T11:00:00Z",
+        "freshThrough": "2026-11-01T11:00:00Z"
+      }
+    ],
     "urls": [
       {
         "id": "url:quiet",
         "url": "https://harbor-demo.example/",
         "state": "ready",
         "reasons": [],
-        "providers": [],
+        "providers": [
+          {
+            "id": "google-search-console",
+            "observationState": "observed_ready",
+            "providerReadiness": "ready",
+            "reasons": [],
+            "observedAt": "2026-11-01T11:00:00Z",
+            "searchPresence": "present",
+            "crawlState": "success",
+            "indexingPermission": "allowed",
+            "canonicalState": "self",
+            "canonicalTarget": "https://harbor-demo.example/",
+            "httpStatus": 200
+          },
+          {
+            "id": "yandex-webmaster",
+            "observationState": "observed_ready",
+            "providerReadiness": "ready",
+            "reasons": [],
+            "observedAt": "2026-11-01T11:00:00Z",
+            "searchPresence": "present",
+            "crawlState": "success",
+            "indexingPermission": "allowed",
+            "canonicalState": "self",
+            "canonicalTarget": "https://harbor-demo.example/",
+            "httpStatus": 200
+          }
+        ],
         "findings": [
           "no_cross_engine_divergence_observed"
         ],

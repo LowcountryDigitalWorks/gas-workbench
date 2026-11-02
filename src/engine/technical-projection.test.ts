@@ -50,6 +50,14 @@ describe('Technical feature projection v1 minor 0', () => {
     expect(() => parseTechnicalProjection(incompatible)).toThrow('Incompatible Technical collection identities')
     const badCount = copy(changed); badCount.diff.summary.changed = 0
     expect(() => parseTechnicalProjection(badCount)).toThrow('summary counts do not reconcile')
+
+    const danglingBaseline = copy(changed)
+    danglingBaseline.diff.entries[0].baselineObservationId = 'observation:absent'
+    expect(() => parseTechnicalProjection(danglingBaseline)).toThrow('absent from baseline collection')
+
+    const mismatchedCurrentValue = copy(changed)
+    mismatchedCurrentValue.diff.entries[0].currentValue = 'Disconnected supplied value'
+    expect(() => parseTechnicalProjection(mismatchedCurrentValue)).toThrow('current value does not match observation')
   })
   it('preserves either known side of coverage-unknown entries without asserting absence', () => {
     expect(parseTechnicalProjection(coverage).diff?.entries[0]).toMatchObject({
@@ -143,6 +151,9 @@ describe('Technical feature projection v1 minor 0', () => {
     delete provider.indexingPermission
     delete provider.canonicalState
     expect(() => parseTechnicalProjection(validNotObserved)).not.toThrow()
+    const missingProviderState = copy(discovery) as unknown as MutableUrlProvider
+    missingProviderState.discovery.urls[0].providers.pop()
+    expect(() => parseTechnicalProjection(missingProviderState)).toThrow('must exactly cover the supplied search-engine readiness set')
   })
   it('rejects impossible Discovery finding and observed-search combinations', () => {
     const notReadyWithFinding = copy(discovery)
@@ -156,6 +167,12 @@ describe('Technical feature projection v1 minor 0', () => {
     const zeroQueries = copy(discovery)
     zeroQueries.discovery.urls[0].queryCount = 0
     expect(() => parseTechnicalProjection(zeroQueries)).toThrow('requires at least one observed query row')
+
+
+    const unsupportedQuiet = copy(quiet)
+    unsupportedQuiet.discovery.providers.pop()
+    unsupportedQuiet.discovery.urls[0].providers.pop()
+    expect(() => parseTechnicalProjection(unsupportedQuiet)).toThrow('ready requires at least two observed-ready search engines')
   })
   it('keeps IndexNow notification context internally coherent and bounded', () => {
     const mismatchedResult = copy(discovery)
@@ -165,6 +182,30 @@ describe('Technical feature projection v1 minor 0', () => {
     const badStatus = copy(discovery)
     badStatus.discovery.urls[0].indexNow.resultCode = 99
     expect(() => parseTechnicalProjection(badStatus)).toThrow('HTTP status')
+
+
+    type MutableIndexNowFixture = { discovery: { urls: Array<{ indexNow: { submittedAt?: string; submissionResult?: string; resultCode?: number; state: string; laterProviders: string[] } }> } }
+    const validLaterPresent = copy(discovery) as unknown as MutableIndexNowFixture
+    validLaterPresent.discovery.urls[0].indexNow.submittedAt = '2026-11-01T10:00:00Z'
+    validLaterPresent.discovery.urls[0].indexNow.state = 'submission_accepted_later_present_observed'
+    validLaterPresent.discovery.urls[0].indexNow.laterProviders = ['google-search-console', 'yandex-webmaster']
+    expect(() => parseTechnicalProjection(validLaterPresent)).not.toThrow()
+
+    const nonReadyLaterProvider = copy(validLaterPresent)
+    nonReadyLaterProvider.discovery.urls[0].indexNow.laterProviders = ['bing-webmaster-tools']
+    expect(() => parseTechnicalProjection(nonReadyLaterProvider)).toThrow('must reference observed-ready URL evidence')
+
+    const preSubmissionLaterProvider = copy(validLaterPresent)
+    preSubmissionLaterProvider.discovery.urls[0].indexNow.submittedAt = '2026-11-01T11:30:00Z'
+    expect(() => parseTechnicalProjection(preSubmissionLaterProvider)).toThrow('must be observed after submission')
+
+    const contradictoryLaterState = copy(validLaterPresent)
+    contradictoryLaterState.discovery.urls[0].indexNow.state = 'submission_accepted_later_absent_observed'
+    expect(() => parseTechnicalProjection(contradictoryLaterState)).toThrow('contradicts named provider search presence')
+
+    const duplicateLaterProvider = copy(validLaterPresent)
+    duplicateLaterProvider.discovery.urls[0].indexNow.laterProviders = ['google-search-console', 'google-search-console']
+    expect(() => parseTechnicalProjection(duplicateLaterProvider)).toThrow('cannot contain duplicate provider IDs')
   })
   it('rejects duplicate Discovery source IDs', () => {
     const duplicate = copy(discovery); duplicate.discovery.providers.push(copy(duplicate.discovery.providers[0]))
