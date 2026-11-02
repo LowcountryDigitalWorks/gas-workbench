@@ -6,6 +6,7 @@ export const VISIBILITY_SCHEMA_MINOR_VERSION = 0 as const
 export type VisibilityAvailability = 'ready' | 'limited' | 'unavailable' | 'not_supplied'
 export type VisibilityComparison = 'comparable' | 'incompatible' | 'not_supplied'
 export type VisibilityModality = 'legacy_subtype_not_established' | 'text_based' | 'multimodal'
+export type VisibilitySourceUniverse = 'legacy_generic_web' | 'search_performance_minor1'
 
 export interface VisibilityMetric {
   readonly name: string
@@ -43,6 +44,8 @@ export interface VisibilityFeatureProjection {
     period?: string
     freshness?: string
     coverage?: string
+    sourceUniverse?: VisibilitySourceUniverse
+    baselineSourceUniverse?: VisibilitySourceUniverse
     modality?: VisibilityModality
     baselineModality?: VisibilityModality
     metrics: readonly VisibilityMetric[]
@@ -103,7 +106,7 @@ export function parseVisibilityProjection(input: unknown): VisibilityFeatureProj
   if (!Array.isArray(root.sources)) fail('visibility.sources must be an array.')
   const sources = root.sources.map((raw, n) => {
     const p = `visibility.sources[${n}]`
-    const x = exact(raw, p, ['id', 'family', 'provider', 'identity', 'release', 'readiness', 'reasons', 'metrics', 'comparison', 'comparisonReasons', 'limitations'], ['period', 'freshness', 'coverage', 'modality', 'baselineModality', 'descriptiveChange', 'concentration', 'evidenceIdentity', 'attentionId'])
+    const x = exact(raw, p, ['id', 'family', 'provider', 'identity', 'release', 'readiness', 'reasons', 'metrics', 'comparison', 'comparisonReasons', 'limitations'], ['period', 'freshness', 'coverage', 'sourceUniverse', 'baselineSourceUniverse', 'modality', 'baselineModality', 'descriptiveChange', 'concentration', 'evidenceIdentity', 'attentionId'])
     if (!Array.isArray(x.metrics)) fail(`${p}.metrics must be an array.`)
     const metrics = x.metrics.map((rawMetric, index) => {
       const q = `${p}.metrics[${index}]`, m = exact(rawMetric, q, ['name', 'unit'], ['baseline', 'current'])
@@ -123,6 +126,8 @@ export function parseVisibilityProjection(input: unknown): VisibilityFeatureProj
       ...(optionalString(x, 'period', p) === undefined ? {} : { period: x.period as string }),
       ...(optionalString(x, 'freshness', p) === undefined ? {} : { freshness: x.freshness as string }),
       ...(optionalString(x, 'coverage', p) === undefined ? {} : { coverage: x.coverage as string }),
+      ...(x.sourceUniverse === undefined ? {} : { sourceUniverse: oneOf(x.sourceUniverse, ['legacy_generic_web', 'search_performance_minor1'] as const, `${p}.sourceUniverse`) }),
+      ...(x.baselineSourceUniverse === undefined ? {} : { baselineSourceUniverse: oneOf(x.baselineSourceUniverse, ['legacy_generic_web', 'search_performance_minor1'] as const, `${p}.baselineSourceUniverse`) }),
       ...(x.modality === undefined ? {} : { modality: oneOf(x.modality, ['legacy_subtype_not_established', 'text_based', 'multimodal'] as const, `${p}.modality`) }),
       ...(x.baselineModality === undefined ? {} : { baselineModality: oneOf(x.baselineModality, ['legacy_subtype_not_established', 'text_based', 'multimodal'] as const, `${p}.baselineModality`) }),
       metrics, comparison: oneOf(x.comparison, ['comparable', 'incompatible', 'not_supplied'] as const, `${p}.comparison`),
@@ -138,10 +143,22 @@ export function parseVisibilityProjection(input: unknown): VisibilityFeatureProj
   for (const source of sources) {
     if (ids.has(source.id)) fail(`Duplicate Visibility source id ${source.id}.`)
     ids.add(source.id)
-    if (source.family === 'organic_search' && source.modality === undefined) fail(`Organic Search source ${source.id} must preserve the Web modality identity.`)
+    if (source.family === 'organic_search') {
+      if (source.sourceUniverse === undefined || source.modality === undefined) fail(`Organic Search source ${source.id} must preserve its source universe and Web modality identity.`)
+      if (source.sourceUniverse === 'legacy_generic_web' && source.modality !== 'legacy_subtype_not_established') fail(`Legacy Web source ${source.id} cannot be relabeled with a minor1 modality.`)
+      if (source.sourceUniverse === 'search_performance_minor1' && source.modality === 'legacy_subtype_not_established') fail(`Minor1 Search Performance source ${source.id} must preserve its text-based or multimodal identity.`)
+      if ((source.baselineSourceUniverse === undefined) !== (source.baselineModality === undefined)) fail(`Baseline source universe and modality for ${source.id} must be supplied together.`)
+      if (source.baselineSourceUniverse !== undefined && source.baselineModality !== undefined) {
+        if (source.baselineSourceUniverse === 'legacy_generic_web' && source.baselineModality !== 'legacy_subtype_not_established') fail(`Legacy baseline Web source ${source.id} cannot be relabeled with a minor1 modality.`)
+        if (source.baselineSourceUniverse === 'search_performance_minor1' && source.baselineModality === 'legacy_subtype_not_established') fail(`Minor1 baseline Search Performance source ${source.id} must preserve its text-based or multimodal identity.`)
+      }
+      if (source.comparison === 'comparable' && (source.baselineSourceUniverse === undefined || source.baselineModality === undefined)) fail(`Comparable Organic Search source ${source.id} must preserve both baseline and current source universes.`)
+    } else if (source.sourceUniverse !== undefined || source.baselineSourceUniverse !== undefined || source.modality !== undefined || source.baselineModality !== undefined) {
+      fail(`AI Visibility source ${source.id} cannot carry Search/Web source-universe or modality fields.`)
+    }
     if (source.comparison === 'comparable' && source.readiness !== 'ready') fail(`Comparable source ${source.id} must be marked ready by the supplied producer.`)
     if (source.comparison === 'incompatible' && source.comparisonReasons.length === 0) fail(`Incompatible source ${source.id} must preserve a supplied reason.`)
-    if (source.baselineModality !== undefined && source.baselineModality !== source.modality && source.comparison === 'comparable') fail(`Modality discontinuity for ${source.id} cannot be marked comparable.`)
+    if (source.comparison === 'comparable' && (source.baselineSourceUniverse !== source.sourceUniverse || source.baselineModality !== source.modality)) fail(`Source-universe or modality discontinuity for ${source.id} cannot be marked comparable.`)
     if (source.comparison !== 'comparable' && source.descriptiveChange !== undefined) fail(`Non-comparable source ${source.id} cannot supply descriptive change.`)
     if (source.attentionId !== undefined && source.evidenceIdentity === undefined) fail(`Attention link ${source.attentionId} requires an exact evidence identity.`)
   }
