@@ -17,7 +17,7 @@
     "policyId": "policy:synthetic-discovery-1",
     "providers": [
       {
-        "id": "google_search_console",
+        "id": "google-search-console",
         "state": "ready",
         "reasons": [],
         "coverage": "complete",
@@ -26,7 +26,7 @@
         "freshThrough": "2026-11-01T11:00:00Z"
       },
       {
-        "id": "bing_webmaster_tools",
+        "id": "bing-webmaster-tools",
         "state": "not_ready",
         "reasons": [
           "coverage_partial"
@@ -47,18 +47,18 @@
         ],
         "providers": [
           {
-            "id": "google_search_console",
+            "id": "google-search-console",
             "observationState": "observed_ready",
             "providerReadiness": "ready",
             "reasons": [],
             "observedAt": "2026-11-01T11:00:00Z",
             "searchPresence": "present",
-            "canonicalState": "self_canonical",
+            "canonicalState": "self",
             "canonicalTarget": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow",
             "httpStatus": 200
           },
           {
-            "id": "bing_webmaster_tools",
+            "id": "bing-webmaster-tools",
             "observationState": "observed_provider_not_ready",
             "providerReadiness": "not_ready",
             "reasons": [
