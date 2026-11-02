@@ -72,8 +72,8 @@
         "release": "0.13",
         "identity": "synthetic:discovery:services",
         "providerIds": [
-          "google_search_console",
-          "bing_webmaster_tools"
+          "google-search-console",
+          "bing-webmaster-tools"
         ],
         "sourcePeriods": [],
         "readiness": "limited",
@@ -102,8 +102,8 @@
         "state": "candidate",
         "evidenceIdentity": "synthetic:discovery:services",
         "providerIds": [
-          "google_search_console",
-          "bing_webmaster_tools"
+          "google-search-console",
+          "bing-webmaster-tools"
         ],
         "url": "https://harbor-demo.example/services/a-very-long-synthetic-reference-that-wraps-without-horizontal-overflow",
         "readinessContext": [
