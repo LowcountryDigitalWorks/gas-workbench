@@ -147,6 +147,13 @@ describe('Measurement feature projection boundary', () => {
     comparableWithReason.interpretations[0].allowedClaimCodes = ['exact_observation_description']
     comparableWithReason.interpretations[0].comparability = { ...comparableWithReason.interpretations[0].comparability, state: 'comparable', reasons: ['ai_prompt_metric_semantics_required'] }
     expect(parseMeasurementProjection(comparableWithReason).interpretations[0].comparability).toMatchObject({ state: 'comparable', reasons: ['ai_prompt_metric_semantics_required'] })
+
+    const humanWithBlockedInterpretation = clone(measurementFixtureData['human-outcome']) as { interpretations: { readiness: string; claimCeiling: string; allowedClaimCodes: string[]; comparability: { state: string; reasons: string[] } }[] }
+    humanWithBlockedInterpretation.interpretations[0].readiness = 'blocked'
+    humanWithBlockedInterpretation.interpretations[0].claimCeiling = 'not_interpretable'
+    humanWithBlockedInterpretation.interpretations[0].allowedClaimCodes = ['no_change_claim_supported']
+    humanWithBlockedInterpretation.interpretations[0].comparability = { ...humanWithBlockedInterpretation.interpretations[0].comparability, state: 'discontinuous', reasons: ['source_or_method_context_changed'] }
+    expect(parseMeasurementProjection(humanWithBlockedInterpretation).outcomes[0].direction).toBe('improved')
   })
 
   it('keeps observed numeric zero distinct from missing or not measured', () => {
