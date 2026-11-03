@@ -91,6 +91,7 @@ function window(v: unknown, p: string) { const x = exact(v, p, ['start', 'end'])
 function identity(v: unknown): MeasurementFeatureProjection['identity'] { const p = 'measurement.identity', x = exact(v, p, ['workspaceId', 'tenantId', 'siteId', 'siteScopeRevisionId', 'trustedTarget', 'generatedAt', 'evaluatedAt']); return { workspaceId: str(x.workspaceId, `${p}.workspaceId`), tenantId: str(x.tenantId, `${p}.tenantId`), siteId: str(x.siteId, `${p}.siteId`), siteScopeRevisionId: str(x.siteScopeRevisionId, `${p}.siteScopeRevisionId`), trustedTarget: str(x.trustedTarget, `${p}.trustedTarget`), generatedAt: str(x.generatedAt, `${p}.generatedAt`), evaluatedAt: str(x.evaluatedAt, `${p}.evaluatedAt`) } }
 function unique(values: readonly string[], p: string) { if (new Set(values).size !== values.length) fail(`${p} contains duplicate IDs.`) }
 function sameStrings(left: readonly string[], right: readonly string[]) { return left.length === right.length && left.every((value, index) => value === right[index]) }
+function sameIdSet(left: readonly string[], right: readonly string[]) { return left.length === right.length && left.every((value) => right.includes(value)) }
 
 function parseMeasurement(raw: unknown, i: number): MeasurementFeatureProjection['measurements'][number] {
   const p = `measurement.measurements[${i}]`, x = exact(raw, p, ['id', 'relationship', 'dueWindow', 'result', 'comparability', 'methodology', 'createdAt'])
@@ -178,7 +179,10 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
     if (planBaseline.result.state !== 'measured' || !planBaseline.result.observations.some((item) => item.id === measurementPlan.target.baselineObservationId)) fail('Measurement plan baseline observation must resolve to the selected baseline measurement.')
     if (measurementPlan.target.followUpObservationId !== undefined && (planFollowUp.result.state !== 'measured' || !planFollowUp.result.observations.some((item) => item.id === measurementPlan.target.followUpObservationId))) fail('Measurement plan follow-up observation must resolve to the selected follow-up measurement.')
   }
-  for (const outcome of outcomes) for (const id of outcome.measurementIds) if (!measurementsById.has(id)) fail(`Outcome ${outcome.id} references absent measurement ${id}.`)
+  for (const outcome of outcomes) {
+    for (const id of outcome.measurementIds) if (!measurementsById.has(id)) fail(`Outcome ${outcome.id} references absent measurement ${id}.`)
+    if (measurementPlan && !sameIdSet(outcome.measurementIds, [measurementPlan.baselineMeasurementId, measurementPlan.followUpMeasurementId])) fail(`Outcome ${outcome.id} must reference the exact supplied measurement-plan pair.`)
+  }
   for (const profile of interpretations) {
     const baseline = measurementsById.get(profile.comparability.baselineMeasurementId)
     const followUp = measurementsById.get(profile.comparability.followUpMeasurementId)

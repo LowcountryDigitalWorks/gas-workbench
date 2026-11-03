@@ -79,6 +79,13 @@ describe('Measurement feature projection boundary', () => {
     const outcome = clone(measurementFixtureData['human-outcome']) as { outcomes: { measurementIds: string[] }[] }
     outcome.outcomes[0].measurementIds[1] = 'measurement:missing'
     expect(() => parseMeasurementProjection(outcome)).toThrow('references absent measurement')
+
+    const wrongExistingPair = clone(measurementFixtureData['human-outcome']) as { measurements: { id: string }[]; outcomes: { measurementIds: string[] }[] }
+    const otherBaseline = structuredClone(wrongExistingPair.measurements[0])
+    otherBaseline.id = 'measurement:other-baseline'
+    wrongExistingPair.measurements.push(otherBaseline)
+    wrongExistingPair.outcomes[0].measurementIds = ['measurement:synthetic-baseline', 'measurement:other-baseline']
+    expect(() => parseMeasurementProjection(wrongExistingPair)).toThrow('exact supplied measurement-plan pair')
   })
 
 
