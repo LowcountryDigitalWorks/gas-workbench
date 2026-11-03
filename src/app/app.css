@@ -619,6 +619,39 @@
 .technical-handoff { margin: 24px 0; border-top: 1px solid var(--color-border); padding: 18px 0; }
 .technical-handoff summary { cursor: pointer; font-weight: 800; }
 .technical-handoff > p { margin: 12px 0; }
+.measurement-view { padding: 30px var(--space-7); max-width: 1120px; min-width: 0; }
+.measurement-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 260px); align-items: end; gap: var(--space-4); margin-bottom: var(--space-4); }
+.measurement-heading > div { grid-row: span 2; min-width: 0; }
+.measurement-heading > label { font-size: 13px; font-weight: 800; }
+.measurement-heading select { width: 100%; }
+.measurement-schema { color: var(--color-text-muted); font-size: 12px; margin-bottom: 20px; overflow-wrap: anywhere; }
+.measurement-card { border: 1px solid var(--color-border); border-radius: 6px; padding: 22px; margin: 18px 0; min-width: 0; }
+.measurement-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.measurement-card-heading > div { min-width: 0; }
+.measurement-card-heading h3, .measurement-card-heading h4 { margin-bottom: 12px; }
+.measurement-card .facts > div { grid-template-columns: minmax(150px, 200px) minmax(0, 1fr); }
+.measurement-card code, .measurement-view code { overflow-wrap: anywhere; word-break: break-word; }
+.measurement-records { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 18px 0; }
+.measurement-record { min-width: 0; border: 1px solid var(--color-border); border-radius: 5px; padding: 16px; background: var(--color-soft-white); }
+.measurement-record header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.measurement-record > code { display: block; margin-bottom: 12px; }
+.measurement-record p { margin-top: 10px; font-size: 13px; }
+.measurement-record ul { list-style: none; padding: 0; margin: 12px 0 0; }
+.measurement-record li { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--color-border); padding: 10px 0; min-width: 0; }
+.measurement-record li code { min-width: 0; }
+.claim-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.claim-grid > div { min-width: 0; padding: 14px; border: 1px solid var(--color-border); border-radius: 5px; background: var(--color-soft-white); }
+.claim-grid code { display: block; margin-top: 7px; font-size: 12px; }
+.human-outcome { border-left: 3px solid var(--color-cypress-teal); padding: 16px 0 16px 18px; margin-top: 16px; }
+.human-outcome p { margin-top: 10px; }
+.measurement-reference { display: block; margin-top: 8px; }
+.measurement-identifiers { margin-top: 14px; border-top: 1px solid var(--color-border); padding-top: 10px; }
+.measurement-identifiers summary { cursor: pointer; font-size: 12px; font-weight: 800; color: var(--color-text-muted); }
+.measurement-identifiers code { display: block; margin-top: 7px; font-size: 12px; }
+.measurement-limits { margin: 24px 0; border-top: 1px solid var(--color-border); padding: 18px 0; }
+.measurement-limits summary { cursor: pointer; font-weight: 800; }
+.measurement-limits h4 { margin-top: 16px; }
+.measurement-limits ul { padding-left: 22px; }
 .empty-state,
 .loading-state,
 .error-state {
@@ -734,7 +767,8 @@ dialog li {
   .home-view,
   .attention-view,
   .decision-view,
-  .visibility-view {
+  .visibility-view,
+  .measurement-view {
     padding: 28px var(--space-5);
   }
   .facts > div {
@@ -894,13 +928,18 @@ dialog li {
   .home-view,
   .attention-view,
   .decision-view,
-  .visibility-view {
+  .visibility-view,
+  .measurement-view {
     padding: 28px 20px;
   }
   .visibility-heading { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
   .technical-heading { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
-  .technical-heading > div { grid-row: auto; }
-  .technical-card { padding: 16px; }
+  .measurement-heading { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+  .technical-heading > div,
+  .measurement-heading > div { grid-row: auto; }
+  .technical-card,
+  .measurement-card { padding: 16px; }
+  .claim-grid { grid-template-columns: minmax(0, 1fr); }
   .technical-url { padding: 12px; }
   .visibility-heading > div { grid-row: auto; }
   .visibility-source { padding: 16px; }
