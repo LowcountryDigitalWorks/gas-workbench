@@ -22,13 +22,14 @@ function downloadJson(report: ReportFeatureProjection['report']) {
   URL.revokeObjectURL(url)
 }
 
-export function Reports({ projection, fixture, chooseFixture }: {
-  projection: ReportFeatureProjection
+export function Reports({ projection, error, fixture, chooseFixture }: {
+  projection?: ReportFeatureProjection
+  error?: string
   fixture: ReportFixtureId
   chooseFixture: (id: ReportFixtureId) => void
 }) {
   const selectId = useId()
-  const report = projection.report
+  const report = projection?.report
   return <section className="report-view">
     <div className="report-heading">
       <div>
@@ -40,11 +41,12 @@ export function Reports({ projection, fixture, chooseFixture }: {
       <select id={selectId} value={fixture} onChange={(event) => chooseFixture(event.target.value as ReportFixtureId)}>
         {reportFixtureIds.map((id) => <option key={id} value={id}>{names[id]}</option>)}
       </select>
-      <div className="report-controls" aria-label="Deterministic report export">
+      {report && <div className="report-controls" aria-label="Deterministic report export">
         <button type="button" className="button secondary" onClick={() => downloadJson(report)}>Download supplied JSON{report.internalAppendix ? ' · includes internal appendix' : ''}</button>
         <button type="button" className="button secondary" onClick={() => window.print()}>Print customer-safe body / save PDF</button>
-      </div>
+      </div>}
     </div>
+    {projection && report ? <>
     <p className="report-schema">Checked feature contract <code>{projection.schemaVersion}</code> / minor {projection.schemaMinorVersion}. Report payload remains supplied Release <code>{report.version}</code> output.</p>
 
     <article className="report-paper report-customer-body">
@@ -119,5 +121,10 @@ export function Reports({ projection, fixture, chooseFixture }: {
       <code>{report.internalAppendix.workspaceId}</code><code>{report.internalAppendix.serviceBriefId}</code>
       {report.internalAppendix.selectedAttentionIds.map((id) => <code key={id}>{id}</code>)}
     </details>}
+    </> : <div className="error-state" role={error ? 'alert' : 'status'}>
+      <h3>{error ? 'Reports unavailable' : 'Checking report projection'}</h3>
+      <p>{error ?? 'Validating report identity, source binding, and customer-safe focus…'}</p>
+      <p>No report body, internal appendix, download, or print action is available without a checked current projection.</p>
+    </div>}
   </section>
 }

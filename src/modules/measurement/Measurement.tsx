@@ -17,13 +17,14 @@ function display(value: string | number | boolean | null | undefined) {
   return String(value)
 }
 
-export function Measurement({ projection, fixture, chooseFixture }: {
-  projection: MeasurementFeatureProjection
+export function Measurement({ projection, error, fixture, chooseFixture }: {
+  projection?: MeasurementFeatureProjection
+  error?: string
   fixture: MeasurementFixtureId
   chooseFixture: (id: MeasurementFixtureId) => void
 }) {
   const selectId = useId()
-  const plan = projection.cycle.measurementPlan
+  const plan = projection?.cycle.measurementPlan
   return <section className="measurement-view">
     <div className="measurement-heading">
       <div>
@@ -36,6 +37,7 @@ export function Measurement({ projection, fixture, chooseFixture }: {
         {measurementFixtureIds.map((id) => <option key={id} value={id}>{names[id]}</option>)}
       </select>
     </div>
+    {projection ? <>
     <p className="measurement-schema">Checked feature contract <code>{projection.schemaVersion}</code> / minor {projection.schemaMinorVersion}. Supplied Release 0.22 interpretation is displayed, never recomputed here.</p>
 
     <section className="measurement-card decision-context">
@@ -120,5 +122,9 @@ export function Measurement({ projection, fixture, chooseFixture }: {
       <h4>Authority notes</h4><ul>{projection.authorityNotes.map((item) => <li key={item}>{item}</li>)}</ul>
       <h4>Limitations</h4><ul>{projection.limitations.map((item) => <li key={item}>{item}</li>)}</ul>
     </details>
+    </> : <div className="error-state" role={error ? 'alert' : 'status'}>
+      <h3>{error ? 'Measure / Outcomes unavailable' : 'Checking measurement projection'}</h3>
+      <p>{error ?? 'Validating measurement-cycle identity and supplied semantics…'}</p>
+    </div>}
   </section>
 }

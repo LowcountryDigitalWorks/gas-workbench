@@ -83,9 +83,9 @@ export function App() {
   const [technicalCase, setTechnicalCase] = useState<TechnicalFixtureId>('ready')
   const [technical, setTechnical] = useState<FeatureLoad<TechnicalProjection, TechnicalFixtureId, WorkbenchProjection>>()
   const [measurementCase, setMeasurementCase] = useState<MeasurementFixtureId>('follow-up-not-due')
-  const [measurement, setMeasurement] = useState<{ value?: MeasurementFeatureProjection; error?: string }>({})
+  const [measurement, setMeasurement] = useState<FeatureLoad<MeasurementFeatureProjection, MeasurementFixtureId, WorkbenchProjection>>()
   const [reportCase, setReportCase] = useState<ReportFixtureId>('focused-evidence')
-  const [report, setReport] = useState<{ value?: ReportFeatureProjection; error?: string }>({})
+  const [report, setReport] = useState<FeatureLoad<ReportFeatureProjection, ReportFixtureId, WorkbenchProjection>>()
   const [selected, setSelected] = useState<string | undefined>()
   const [attention, setAttention] = useState<string | undefined>()
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
@@ -115,6 +115,8 @@ export function App() {
   const projection = result.projection
   const currentVisibility = currentFeatureLoad(visibility, visibilityCase, projection)
   const currentTechnical = currentFeatureLoad(technical, technicalCase, projection)
+  const currentMeasurement = currentFeatureLoad(measurement, measurementCase, projection)
+  const currentReport = currentFeatureLoad(report, reportCase, projection)
   useEffect(() => {
     if (!projection) return
     let active = true
@@ -135,9 +137,9 @@ export function App() {
     if (!projection || fixture !== 'human-review') return
     let active = true
     loadMeasurementFixture(measurementCase, projection).then((value) => {
-      if (active) setMeasurement({ value })
+      if (active) setMeasurement({ fixture: measurementCase, source: projection, value })
     }).catch((error) => {
-      if (active) setMeasurement({ error: error instanceof Error ? error.message : 'Measurement projection unavailable.' })
+      if (active) setMeasurement({ fixture: measurementCase, source: projection, error: error instanceof Error ? error.message : 'Measurement projection unavailable.' })
     })
     return () => { active = false }
   }, [projection, fixture, measurementCase])
@@ -145,9 +147,9 @@ export function App() {
     if (!projection || fixture !== reportShellFixture(reportCase)) return
     let active = true
     loadReportFixture(reportCase, projection).then((value) => {
-      if (active) setReport({ value })
+      if (active) setReport({ fixture: reportCase, source: projection, value })
     }).catch((error) => {
-      if (active) setReport({ error: error instanceof Error ? error.message : 'Report projection unavailable.' })
+      if (active) setReport({ fixture: reportCase, source: projection, error: error instanceof Error ? error.message : 'Report projection unavailable.' })
     })
     return () => { active = false }
   }, [projection, fixture, reportCase])
@@ -172,7 +174,7 @@ export function App() {
       setResult({})
       setSelected(undefined)
       setAttention(undefined)
-      setMeasurement({})
+      setMeasurement(undefined)
     }
     const expectedReportShell = reportShellFixture(reportCase)
     if (next === 'reports' && fixture !== expectedReportShell) {
@@ -180,7 +182,7 @@ export function App() {
       setResult({})
       setSelected(undefined)
       setAttention(undefined)
-      setReport({})
+      setReport(undefined)
     }
     setView(next)
     requestAnimationFrame(() =>
@@ -202,7 +204,7 @@ export function App() {
   function chooseReportCase(next: ReportFixtureId) {
     const nextShell = reportShellFixture(next)
     setReportCase(next)
-    setReport({})
+    setReport(undefined)
     if (nextShell !== fixture) {
       setFixture(nextShell)
       setResult({})
@@ -221,8 +223,8 @@ export function App() {
     evidence: `${w?.sourceManifest.length ?? '…'} supplied sources`,
     attention: `${w?.attention.length ?? '…'} unranked items`,
     decisions: 'Human draft / supplied context',
-    measurement: measurement.value ? measurement.value.cycle.readiness.state.replaceAll('_', ' ') : 'Measurement cycle',
-    reports: report.value ? `${report.value.report.focusItems.length} customer-safe focus item${report.value.report.focusItems.length === 1 ? '' : 's'}` : 'Customer-safe report',
+    measurement: currentMeasurement?.value ? currentMeasurement.value.cycle.readiness.state.replaceAll('_', ' ') : 'Measurement cycle',
+    reports: currentReport?.value ? `${currentReport.value.report.focusItems.length} customer-safe focus item${currentReport.value.report.focusItems.length === 1 ? '' : 's'}` : 'Customer-safe report',
     portfolio: `${portfolioProjection.portfolio.summary.engagementCount} trusted engagements`,
   }
   return (
@@ -328,6 +330,13 @@ export function App() {
         </header>
         {view === 'portfolio' ? (
           <Portfolio projection={portfolioProjection} />
+        ) : view === 'reports' ? (
+          <Reports
+            projection={currentReport?.value}
+            error={result.error ?? currentReport?.error}
+            fixture={reportCase}
+            chooseFixture={chooseReportCase}
+          />
         ) : !projection ? (
           result.error ? (
             <section className="error-state" role="alert">
@@ -391,11 +400,14 @@ export function App() {
               />
             )}
             {view === 'measurement' && (
-              measurement.value ? <Measurement projection={measurement.value} fixture={measurementCase} chooseFixture={(id) => { setMeasurementCase(id); setMeasurement({}) }} /> : <section className="error-state" role={measurement.error ? 'alert' : 'status'}><h2>{measurement.error ? 'Measure / Outcomes unavailable' : 'Checking measurement projection'}</h2><p>{measurement.error ?? 'Validating measurement-cycle identity and supplied semantics…'}</p></section>
+              <Measurement
+                projection={currentMeasurement?.value}
+                error={currentMeasurement?.error}
+                fixture={measurementCase}
+                chooseFixture={(id) => { setMeasurementCase(id); setMeasurement(undefined) }}
+              />
             )}
-            {view === 'reports' && (
-              report.value ? <Reports projection={report.value} fixture={reportCase} chooseFixture={chooseReportCase} /> : <section className="error-state" role={report.error ? 'alert' : 'status'}><h2>{report.error ? 'Reports unavailable' : 'Checking report projection'}</h2><p>{report.error ?? 'Validating Release 0.17 report identity, source binding, and customer-safe focus…'}</p></section>
-            )}
+
             {view === 'evidence' && (
               <Evidence
                 key={fixture}
