@@ -19,6 +19,10 @@ import { Measurement } from '../modules/measurement/Measurement'
 import { loadMeasurementFixture } from '../engine/measurementFixtures'
 import type { MeasurementFixtureId } from '../engine/measurementFixtures'
 import type { MeasurementFeatureProjection } from '../engine/measurement-projection'
+import { Reports } from '../modules/reports/Reports'
+import { loadReportFixture } from '../engine/reportFixtures'
+import type { ReportFixtureId } from '../engine/reportFixtures'
+import type { ReportFeatureProjection } from '../engine/report-projection'
 import type { Draft } from '../modules/decisions/DecisionDraft'
 import { fixtureIds, loadFixture } from './fixtures'
 import type { FixtureId } from './fixtures'
@@ -33,6 +37,7 @@ const labels = {
   attention: 'Attention',
   decisions: 'Decision',
   measurement: 'Measure / Outcomes',
+  reports: 'Reports',
 }
 const icons = {
   home: 'home',
@@ -42,6 +47,7 @@ const icons = {
   attention: 'search',
   decisions: 'notes',
   measurement: 'chart-bar',
+  reports: 'report',
 }
 const cases = {
   quiet: 'Quiet',
@@ -65,6 +71,8 @@ export function App() {
   const [technical, setTechnical] = useState<{ value?: TechnicalProjection; error?: string }>({})
   const [measurementCase, setMeasurementCase] = useState<MeasurementFixtureId>('follow-up-not-due')
   const [measurement, setMeasurement] = useState<{ value?: MeasurementFeatureProjection; error?: string }>({})
+  const [reportCase, setReportCase] = useState<ReportFixtureId>('focused-evidence')
+  const [report, setReport] = useState<{ value?: ReportFeatureProjection; error?: string }>({})
   const [selected, setSelected] = useState<string | undefined>()
   const [attention, setAttention] = useState<string | undefined>()
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
@@ -118,6 +126,16 @@ export function App() {
     })
     return () => { active = false }
   }, [projection, fixture, measurementCase])
+  useEffect(() => {
+    if (!projection || fixture !== 'human-review') return
+    let active = true
+    loadReportFixture(reportCase, projection).then((value) => {
+      if (active) setReport({ value })
+    }).catch((error) => {
+      if (active) setReport({ error: error instanceof Error ? error.message : 'Report projection unavailable.' })
+    })
+    return () => { active = false }
+  }, [projection, fixture, reportCase])
   const w = projection?.workspace
   function navigate(next: View) {
     if (next === 'technical' && fixture !== 'technical-review') {
@@ -140,6 +158,13 @@ export function App() {
       setSelected(undefined)
       setAttention(undefined)
       setMeasurement({})
+    }
+    if (next === 'reports' && fixture !== 'human-review') {
+      setFixture('human-review')
+      setResult({})
+      setSelected(undefined)
+      setAttention(undefined)
+      setReport({})
     }
     setView(next)
     requestAnimationFrame(() =>
@@ -170,6 +195,7 @@ export function App() {
     attention: `${w?.attention.length ?? '…'} unranked items`,
     decisions: 'Human draft / supplied context',
     measurement: measurement.value ? measurement.value.cycle.readiness.state.replaceAll('_', ' ') : 'Measurement cycle',
+    reports: report.value ? `${report.value.report.focusItems.length} customer-safe focus item${report.value.report.focusItems.length === 1 ? '' : 's'}` : 'Customer-safe report',
   }
   return (
     <div className="workbench-shell">
@@ -212,13 +238,6 @@ export function App() {
               </span>
             </button>
           ))}
-          <div className="nav-unavailable">
-            <Icon name="report" />
-            <span>
-              <strong>Report</strong>
-              <small>View unavailable in this slice</small>
-            </span>
-          </div>
         </nav>
         <p className="rail-note">Workspace views, not a completion sequence.</p>
       </aside>
@@ -235,6 +254,8 @@ export function App() {
                   ? 'Technical evidence'
                 : view === 'measurement'
                   ? 'Measure / Outcomes'
+                : view === 'reports'
+                  ? 'Customer-safe Reports'
                 : view === 'evidence'
                   ? 'Source Atlas'
                   : view === 'attention'
@@ -326,6 +347,9 @@ export function App() {
             )}
             {view === 'measurement' && (
               measurement.value ? <Measurement projection={measurement.value} fixture={measurementCase} chooseFixture={(id) => { setMeasurementCase(id); setMeasurement({}) }} /> : <section className="error-state" role={measurement.error ? 'alert' : 'status'}><h2>{measurement.error ? 'Measure / Outcomes unavailable' : 'Checking measurement projection'}</h2><p>{measurement.error ?? 'Validating measurement-cycle identity and supplied semantics…'}</p></section>
+            )}
+            {view === 'reports' && (
+              report.value ? <Reports projection={report.value} fixture={reportCase} chooseFixture={(id) => { setReportCase(id); setReport({}) }} /> : <section className="error-state" role={report.error ? 'alert' : 'status'}><h2>{report.error ? 'Reports unavailable' : 'Checking report projection'}</h2><p>{report.error ?? 'Validating Release 0.17 report identity, source binding, and customer-safe focus…'}</p></section>
             )}
             {view === 'evidence' && (
               <Evidence
