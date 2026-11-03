@@ -17,9 +17,10 @@ function value(n: number | undefined, unit: string) {
 }
 
 export function Visibility({
-  projection, shell, fixture, chooseFixture, inspect, review,
+  projection, error, shell, fixture, chooseFixture, inspect, review,
 }: {
-  projection: VisibilityFeatureProjection
+  projection?: VisibilityFeatureProjection
+  error?: string
   shell: WorkbenchProjection
   fixture: VisibilityFixtureId
   chooseFixture: (id: VisibilityFixtureId) => void
@@ -36,6 +37,7 @@ export function Visibility({
         {visibilityFixtureIds.map((id) => <option key={id} value={id}>{names[id]}</option>)}
       </select>
     </div>
+    {projection ? <>
     <p className="visibility-schema">Checked feature projection <code>{projection.schemaVersion}</code> / minor {projection.schemaMinorVersion}; shell projection remains minor 0.</p>
     {projection.sources.map((source) => {
       const attention = source.attentionId && shell.workspace.attention.find((item) => item.id === source.attentionId)
@@ -62,5 +64,9 @@ export function Visibility({
       ['Prohibited overclaim codes', projection.claimContext.prohibitedOverclaimCodes.length ? projection.claimContext.prohibitedOverclaimCodes.map((code) => <code key={code}>{code} </code>) : 'None supplied'],
     ]}/>{projection.claimContext.limitations.map((item) => <p className="muted" key={item}>{item}</p>)}</div>}
     {projection.limitations.map((item) => <p className="muted" key={item}>{item}</p>)}
+    </> : <div className="error-state" role={error ? 'alert' : 'status'}>
+      <h3>{error ? 'Visibility unavailable' : 'Checking Visibility projection'}</h3>
+      <p>{error ?? 'Validating source and workspace identity…'}</p>
+    </div>}
   </section>
 }
