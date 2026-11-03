@@ -330,6 +330,14 @@ export function App() {
         </header>
         {view === 'portfolio' ? (
           <Portfolio projection={portfolioProjection} />
+        ) : view === 'measurement' ? (
+          <Measurement
+            projection={currentMeasurement?.value}
+            error={result.error ?? currentMeasurement?.error}
+            retrySnapshot={result.error ? () => { setResult({}); setRetry((value) => value + 1) } : undefined}
+            fixture={measurementCase}
+            chooseFixture={(id) => { setMeasurementCase(id); setMeasurement(undefined) }}
+          />
         ) : view === 'reports' ? (
           <Reports
             projection={currentReport?.value}
@@ -398,14 +406,6 @@ export function App() {
                 chooseFixture={(id) => { setTechnicalCase(id); setTechnical(undefined) }}
                 inspect={(moduleId) => inspect(moduleId)}
                 review={(id) => { setAttention(id); navigate('attention') }}
-              />
-            )}
-            {view === 'measurement' && (
-              <Measurement
-                projection={currentMeasurement?.value}
-                error={currentMeasurement?.error}
-                fixture={measurementCase}
-                chooseFixture={(id) => { setMeasurementCase(id); setMeasurement(undefined) }}
               />
             )}
 

@@ -17,11 +17,12 @@ function display(value: string | number | boolean | null | undefined) {
   return String(value)
 }
 
-export function Measurement({ projection, error, fixture, chooseFixture }: {
+export function Measurement({ projection, error, fixture, chooseFixture, retrySnapshot }: {
   projection?: MeasurementFeatureProjection
   error?: string
   fixture: MeasurementFixtureId
   chooseFixture: (id: MeasurementFixtureId) => void
+  retrySnapshot?: () => void
 }) {
   const selectId = useId()
   const plan = projection?.cycle.measurementPlan
@@ -125,6 +126,7 @@ export function Measurement({ projection, error, fixture, chooseFixture }: {
     </> : <div className="error-state" role={error ? 'alert' : 'status'}>
       <h3>{error ? 'Measure / Outcomes unavailable' : 'Checking measurement projection'}</h3>
       <p>{error ?? 'Validating measurement-cycle identity and supplied semantics…'}</p>
+      {error && retrySnapshot && <button type="button" className="secondary" onClick={retrySnapshot}>Retry snapshot</button>}
     </div>}
   </section>
 }
