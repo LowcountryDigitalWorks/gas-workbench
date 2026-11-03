@@ -225,8 +225,10 @@ function validateDecisionBinding(report: ReportFeatureProjection['report'], work
   } else if (decision.recommendationLifecycle !== recommendation.lifecycle || decision.recommendationRationale === undefined) {
     fail('Report recommendation lifecycle contradicts the current Workbench decision cycle.')
   }
-  if (cycle.readiness.state === 'measurement_not_planned' && decision.measurementPlanned) fail('Report cannot claim a measurement plan when the current cycle says measurement_not_planned.')
-  if ((navigation.recordedMeasurementCount > 0 || navigation.humanOutcomeCount > 0) && !decision.measurementPlanned) fail('Report with recorded measurement/outcome state must preserve measurementPlanned=true.')
+  const planRequired = new Set(['follow_up_not_due', 'follow_up_not_measured', 'follow_up_not_comparable', 'follow_up_not_ready', 'measurements_not_recorded', 'ready_for_human_assessment'])
+  const planAbsent = new Set(['recommendation_proposed', 'recommendation_in_review', 'recommendation_accepted', 'recommendation_rejected', 'recommendation_superseded', 'recommendation_not_created', 'measurement_not_planned'])
+  if (planRequired.has(cycle.readiness.state) && !decision.measurementPlanned) fail('Report must preserve measurementPlanned=true for a plan-backed current cycle state.')
+  if (planAbsent.has(cycle.readiness.state) && decision.measurementPlanned) fail('Report cannot claim a measurement plan for a current cycle state produced only when no plan is supplied.')
 }
 
 export async function decodeReportProjection(input: unknown, shell: WorkbenchProjection): Promise<ReportFeatureProjection> {

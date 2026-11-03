@@ -94,6 +94,21 @@ describe('Report feature projection boundary', () => {
     const wrongOutcomeTime = clone(reportFixtureData['decision-outcome']) as unknown as { report: { decision: { humanOutcomes: { createdAt: string }[] } } }
     wrongOutcomeTime.report.decision.humanOutcomes[0].createdAt = '2026-11-13T00:21:00Z'
     await expect(decodeReportProjection(wrongOutcomeTime, outcomeShell)).rejects.toThrow('outcome direction/time')
+    const acceptedShell = clone(outcomeShell) as unknown as { workspace: { decisionCycle: { readiness: { state: string; reasons: string[] } }; navigation: { decisionCycle: { readiness: string; recordedMeasurementCount: number; humanOutcomeCount: number } }; timeline: { kind: string }[] } }
+    acceptedShell.workspace.decisionCycle.readiness = { state: 'recommendation_accepted', reasons: [] }
+    acceptedShell.workspace.navigation.decisionCycle.readiness = 'recommendation_accepted'
+    acceptedShell.workspace.navigation.decisionCycle.recordedMeasurementCount = 0
+    acceptedShell.workspace.navigation.decisionCycle.humanOutcomeCount = 0
+    acceptedShell.workspace.timeline = acceptedShell.workspace.timeline.filter((entry) => entry.kind !== 'outcome')
+    const falsePlan = clone(reportFixtureData['decision-outcome']) as unknown as { report: { decision: { readiness: string; measurementPlanned: boolean; recordedMeasurementCount: number; humanOutcomes: unknown[] } } }
+    falsePlan.report.decision.readiness = 'recommendation_accepted'
+    falsePlan.report.decision.measurementPlanned = true
+    falsePlan.report.decision.recordedMeasurementCount = 0
+    falsePlan.report.decision.humanOutcomes = []
+    await expect(decodeReportProjection(falsePlan, acceptedShell as never)).rejects.toThrow('no plan is supplied')
+    const ambiguousOutcome = clone(reportFixtureData['decision-outcome']) as unknown as { report: { decision: { measurementPlanned: boolean } } }
+    ambiguousOutcome.report.decision.measurementPlanned = false
+    await expect(decodeReportProjection(ambiguousOutcome, outcomeShell)).rejects.toThrow('canonical content hash')
   })
 
   it('keeps the internal appendix optional, bounded, and bound to verifiable current source references', async () => {
