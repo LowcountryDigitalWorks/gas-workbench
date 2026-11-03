@@ -740,6 +740,44 @@ dialog li {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+.portfolio-view { padding: 30px var(--space-7); max-width: 1220px; min-width: 0; }
+.portfolio-view code { overflow-wrap: anywhere; word-break: break-word; }
+.portfolio-heading, .portfolio-detail-heading, .portfolio-section-heading, .portfolio-row-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.portfolio-heading { margin-bottom: var(--space-6); }
+.portfolio-heading h2, .portfolio-detail-heading h3, .portfolio-section-heading h3, .portfolio-section-heading h4 { margin-top: 4px; }
+.portfolio-classification { display: grid; justify-items: end; gap: 8px; text-align: right; }
+.portfolio-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.portfolio-summary > div { border: 1px solid var(--color-border); border-radius: 6px; background: white; padding: 16px; display: grid; gap: 4px; }
+.portfolio-summary strong { font-size: 24px; }
+.portfolio-summary span, .portfolio-summary-note { color: var(--color-text-muted); font-size: 13px; }
+.portfolio-summary-note { margin: 10px 0 22px; }
+.portfolio-layout { display: grid; grid-template-columns: minmax(250px, 0.78fr) minmax(0, 1.5fr); gap: 18px; align-items: start; }
+.portfolio-list, .portfolio-detail, .portfolio-rollups, .portfolio-identity { border: 1px solid var(--color-border); border-radius: 7px; background: white; padding: 18px; min-width: 0; }
+.portfolio-engagement { width: 100%; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-soft-white); padding: 14px; margin-top: 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; text-align: left; color: inherit; }
+.portfolio-engagement[aria-pressed="true"] { border-width: 2px; background: white; }
+.portfolio-engagement > span:first-child { min-width: 0; display: grid; gap: 5px; }
+.portfolio-engagement small { color: var(--color-text-muted); overflow-wrap: anywhere; }
+.portfolio-engagement-meta { display: grid; justify-items: end; gap: 6px; flex: 0 0 auto; }
+.portfolio-detail .facts { margin-top: 16px; }
+.portfolio-subsection { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--color-border); }
+.portfolio-source-list { display: grid; gap: 10px; margin-top: 12px; }
+.portfolio-source { border: 1px solid var(--color-border); border-radius: 6px; padding: 14px; min-width: 0; }
+.portfolio-row-heading > div:first-child { display: grid; gap: 5px; min-width: 0; }
+.portfolio-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.portfolio-readiness { display: grid; gap: 8px; margin-top: 10px; }
+.portfolio-readiness > div { display: grid; grid-template-columns: minmax(130px, 1fr) auto; gap: 8px 12px; align-items: center; }
+.portfolio-readiness code { grid-column: 1 / -1; }
+.portfolio-exceptions, .portfolio-limitations { margin: 10px 0 0; padding-left: 20px; }
+.portfolio-exceptions li + li, .portfolio-limitations li + li { margin-top: 8px; }
+.portfolio-exceptions li span { display: block; color: var(--color-text-muted); margin-top: 3px; }
+.portfolio-policy { margin-top: 20px; }
+.portfolio-policy summary, .portfolio-identity summary { cursor: pointer; font-weight: 800; }
+.portfolio-rollups { margin-top: 18px; }
+.portfolio-rollup-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.portfolio-rollup-grid > div { border: 1px solid var(--color-border); border-radius: 6px; padding: 12px; }
+.portfolio-rollup-grid p { display: flex; justify-content: space-between; gap: 10px; margin-top: 7px; font-size: 13px; }
+.portfolio-identity { margin-top: 18px; }
+.portfolio-identity > code { display: block; margin-top: 10px; }
 @media (min-width: 1500px) {
   .source-ledger,
   .source-inspector {
@@ -812,9 +850,12 @@ dialog li {
   .decision-view,
   .visibility-view,
   .measurement-view,
-  .report-view {
+  .report-view,
+  .portfolio-view {
     padding: 28px var(--space-5);
   }
+  .portfolio-layout { grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1.25fr); }
+  .portfolio-summary, .portfolio-rollup-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .facts > div {
     grid-template-columns: 120px minmax(0, 1fr);
   }
@@ -981,6 +1022,14 @@ dialog li {
   .technical-heading { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
   .measurement-heading { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
   .report-heading { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+  .portfolio-view { padding: 28px 20px; }
+  .portfolio-heading, .portfolio-detail-heading, .portfolio-section-heading, .portfolio-row-heading { flex-wrap: wrap; }
+  .portfolio-classification { justify-items: start; text-align: left; }
+  .portfolio-summary, .portfolio-rollup-grid, .portfolio-layout { grid-template-columns: minmax(0, 1fr); }
+  .portfolio-readiness > div { grid-template-columns: minmax(0, 1fr); }
+  .portfolio-readiness code { grid-column: auto; }
+  .portfolio-engagement { flex-wrap: wrap; }
+  .portfolio-engagement-meta { justify-items: start; }
   .technical-heading > div,
   .measurement-heading > div,
   .report-heading > div:first-child { grid-row: auto; }

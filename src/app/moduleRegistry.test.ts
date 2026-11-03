@@ -16,6 +16,7 @@ describe('Workbench module registry', () => {
       'decisions',
       'measurement',
       'reports',
+      'portfolio',
     ])
     expect(registeredModules.map((module) => String(module.id)).includes('discover')).toBe(false)
   })

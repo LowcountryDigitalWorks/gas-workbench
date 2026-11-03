@@ -23,6 +23,8 @@ import { Reports } from '../modules/reports/Reports'
 import { loadReportFixture } from '../engine/reportFixtures'
 import type { ReportFixtureId } from '../engine/reportFixtures'
 import type { ReportFeatureProjection } from '../engine/report-projection'
+import { Portfolio } from '../modules/portfolio/Portfolio'
+import { loadPortfolioFixture } from '../engine/portfolioFixtures'
 import type { Draft } from '../modules/decisions/DecisionDraft'
 import { fixtureIds, loadFixture } from './fixtures'
 import type { FixtureId } from './fixtures'
@@ -38,6 +40,7 @@ const labels = {
   decisions: 'Decision',
   measurement: 'Measure / Outcomes',
   reports: 'Reports',
+  portfolio: 'Sites / Portfolio',
 }
 const icons = {
   home: 'home',
@@ -48,6 +51,7 @@ const icons = {
   decisions: 'notes',
   measurement: 'chart-bar',
   reports: 'report',
+  portfolio: 'home',
 }
 const cases: Record<FixtureId, string> = {
   quiet: 'Quiet',
@@ -63,6 +67,7 @@ function reportShellFixture(id: ReportFixtureId): FixtureId {
   if (id === 'internal-appendix') return 'report-internal'
   return 'human-review'
 }
+const portfolioProjection = loadPortfolioFixture()
 const emptyDraft = { rationale: '', disposition: 'Request review' }
 export function App() {
   const [fixture, setFixture] = useState<FixtureId>('quiet')
@@ -215,6 +220,7 @@ export function App() {
     decisions: 'Human draft / supplied context',
     measurement: measurement.value ? measurement.value.cycle.readiness.state.replaceAll('_', ' ') : 'Measurement cycle',
     reports: report.value ? `${report.value.report.focusItems.length} customer-safe focus item${report.value.report.focusItems.length === 1 ? '' : 's'}` : 'Customer-safe report',
+    portfolio: `${portfolioProjection.portfolio.summary.engagementCount} trusted engagements`,
   }
   return (
     <div className="workbench-shell">
@@ -226,13 +232,13 @@ export function App() {
           G.A.S. Workbench<small>Lowcountry Digital Works</small>
         </div>
         <span className="site-identity">
-          {w ? siteName(w.trustedTarget) : 'Loading workspace'}
+          {view === 'portfolio' ? 'LDW internal portfolio' : w ? siteName(w.trustedTarget) : 'Loading workspace'}
         </span>
         <span className="demo-label">Synthetic demo</span>
         <button
           className="header-context"
           onClick={showContext}
-          disabled={!projection}
+          disabled={!projection || view === 'portfolio'}
         >
           Snapshot details
         </button>
@@ -275,13 +281,22 @@ export function App() {
                   ? 'Measure / Outcomes'
                 : view === 'reports'
                   ? 'Customer-safe Reports'
+                : view === 'portfolio'
+                  ? 'Sites / Portfolio'
                 : view === 'evidence'
                   ? 'Source Atlas'
                   : view === 'attention'
                     ? 'Human review'
                     : 'Decision draft'}
             </h1>
-            {w && (
+            {view === 'portfolio' ? (
+              <p className="snapshot-time">
+                Portfolio evaluated:{' '}
+                <time dateTime={portfolioProjection.portfolio.evaluatedAt}>{timestamp(portfolioProjection.portfolio.evaluatedAt)}</time>
+                <br />
+                Classification: LDW internal
+              </p>
+            ) : w && (
               <p className="snapshot-time">
                 Snapshot:{' '}
                 <time dateTime={w.generatedAt}>{timestamp(w.generatedAt)}</time>
@@ -291,7 +306,7 @@ export function App() {
               </p>
             )}
           </div>
-          <fieldset className="fixture-picker">
+          {view !== 'portfolio' && <fieldset className="fixture-picker">
             <legend>Presentation fixtures</legend>
             <div>
               {fixtureIds.map((id) => (
@@ -306,9 +321,11 @@ export function App() {
               ))}
             </div>
             <small>Public-safe examples • drafts stay in this tab</small>
-          </fieldset>
+          </fieldset>}
         </header>
-        {!projection ? (
+        {view === 'portfolio' ? (
+          <Portfolio projection={portfolioProjection} />
+        ) : !projection ? (
           result.error ? (
             <section className="error-state" role="alert">
               <h2>Snapshot unavailable</h2>
