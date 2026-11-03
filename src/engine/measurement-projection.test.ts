@@ -114,6 +114,15 @@ describe('Measurement feature projection boundary', () => {
     const falseNotReady = clone(notReady)
     falseNotReady.cycle.measurementPlan.readiness = { state: 'ready_for_human_assessment', reasons: [] }
     expect(() => parseMeasurementProjection(falseNotReady)).toThrow('Release 0.16 plan and measurement state')
+
+    const unrecorded = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { readiness: { state: string; reasons: string[] }; recordedMeasurementIds: string[] } }
+    unrecorded.cycle.recordedMeasurementIds = []
+    unrecorded.cycle.readiness = { state: 'measurements_not_recorded', reasons: [] }
+    expect(parseMeasurementProjection(unrecorded).cycle.readiness).toEqual({ state: 'measurements_not_recorded', reasons: [] })
+
+    const falseRecorded = clone(unrecorded)
+    falseRecorded.cycle.readiness = { state: 'ready_for_human_assessment', reasons: [] }
+    expect(() => parseMeasurementProjection(falseRecorded)).toThrow('Release 0.16 plan and measurement state')
   })
 
   it('keeps Release 0.22 vocabularies strict without recomputing interpretation mappings', () => {
@@ -156,5 +165,9 @@ describe('Measurement feature projection boundary', () => {
     const feature = parseMeasurementProjection(measurementFixtureData['human-outcome'])
     expect(feature.outcomes[0].direction).toBe('improved')
     expect(feature.outcomes[0].attribution.strength).toBe('none')
+
+    const discontinuous = clone(measurementFixtureData['human-outcome']) as { measurements: { comparability: Record<string, unknown> }[] }
+    discontinuous.measurements[1].comparability = { state: 'discontinuous', reason: 'Synthetic discontinuity.' }
+    expect(() => parseMeasurementProjection(discontinuous)).toThrow('requires comparable linked measurements')
   })
 })

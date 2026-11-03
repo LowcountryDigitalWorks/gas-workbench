@@ -44,8 +44,8 @@ export function Measurement({ projection, fixture, chooseFixture }: {
         ['Disposition', projection.cycle.decision.disposition],
         ['Recorded', projection.cycle.decision.recordedAt],
       ]}/>
-      <details className="measurement-identifiers"><summary>Exact decision references</summary>
-        <code>{projection.cycle.decision.id}</code><code>{projection.cycle.dossierId}</code><code>{projection.cycle.sourceServiceBriefId}</code>
+      <details className="measurement-identifiers"><summary>Exact decision and recorded-measurement references</summary>
+        <code>{projection.cycle.decision.id}</code><code>{projection.cycle.dossierId}</code><code>{projection.cycle.sourceServiceBriefId}</code>{projection.cycle.recordedMeasurementIds.map((id) => <code key={id}>{id}</code>)}
       </details>
       {projection.cycle.readiness.reasons.map((reason) => <Notice key={reason}><strong>Readiness reason</strong><br/><code>{reason}</code></Notice>)}
     </section>

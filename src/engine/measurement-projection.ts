@@ -32,6 +32,7 @@ export interface MeasurementFeatureProjection {
     sourceServiceBriefId: string
     decision: Readonly<{ id: string; disposition: 'investigate' | 'recommend' | 'defer' | 'dismiss'; summary: string; recordedAt: string }>
     readiness: Readonly<{ state: MeasurementCycleReadiness; reasons: readonly string[] }>
+    recordedMeasurementIds: readonly string[]
     measurementPlan?: Readonly<{
       id: string
       annotation: Readonly<{ id: string; summary: string; occurredAt: string; recordedAt: string }>
@@ -146,10 +147,11 @@ function parseInterpretation(raw: unknown, i: number): MeasurementFeatureProject
 export function parseMeasurementProjection(input: unknown): MeasurementFeatureProjection {
   const root = exact(input, 'measurement', ['schemaVersion', 'schemaMinorVersion', 'identity', 'cycle', 'measurements', 'outcomes', 'interpretations', 'authorityNotes', 'limitations'])
   if (root.schemaVersion !== MEASUREMENT_SCHEMA_VERSION || root.schemaMinorVersion !== MEASUREMENT_SCHEMA_MINOR_VERSION) fail('Unsupported Measurement projection schema/version.')
-  const cycleRaw = exact(root.cycle, 'measurement.cycle', ['dossierId', 'sourceServiceBriefId', 'decision', 'readiness'], ['measurementPlan'])
+  const cycleRaw = exact(root.cycle, 'measurement.cycle', ['dossierId', 'sourceServiceBriefId', 'decision', 'readiness', 'recordedMeasurementIds'], ['measurementPlan'])
   const decisionRaw = exact(cycleRaw.decision, 'measurement.cycle.decision', ['id', 'disposition', 'summary', 'recordedAt'])
   const readinessRaw = exact(cycleRaw.readiness, 'measurement.cycle.readiness', ['state', 'reasons'])
   const readiness = { state: en(readinessRaw.state, CYCLE_READINESS, 'measurement.cycle.readiness.state'), reasons: strings(readinessRaw.reasons, 'measurement.cycle.readiness.reasons') }
+  const recordedMeasurementIds = strings(cycleRaw.recordedMeasurementIds, 'measurement.cycle.recordedMeasurementIds'); unique(recordedMeasurementIds, 'measurement.cycle.recordedMeasurementIds')
   let measurementPlan: MeasurementFeatureProjection['cycle']['measurementPlan']
   if (cycleRaw.measurementPlan !== undefined) {
     const p = exact(cycleRaw.measurementPlan, 'measurement.cycle.measurementPlan', ['id', 'annotation', 'target', 'baselineMeasurementId', 'followUpMeasurementId', 'readiness'])
@@ -162,6 +164,7 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
   const outcomes = arr(root.outcomes, 'measurement.outcomes').map(parseOutcome); unique(outcomes.map((o) => o.id), 'measurement.outcomes')
   const interpretations = arr(root.interpretations, 'measurement.interpretations').map(parseInterpretation); unique(interpretations.map((p) => p.id), 'measurement.interpretations')
   const measurementsById = new Map(measurements.map((m) => [m.id, m] as const))
+  for (const id of recordedMeasurementIds) if (!measurementsById.has(id)) fail(`Recorded measurement ${id} is not supplied in the feature projection.`)
   for (const m of measurements) {
     if (m.relationship.role !== 'follow_up') continue
     const baseline = measurementsById.get(m.relationship.baselineMeasurementId)
@@ -180,8 +183,19 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
     if (measurementPlan.target.followUpObservationId !== undefined && (planFollowUp.result.state !== 'measured' || !planFollowUp.result.observations.some((item) => item.id === measurementPlan.target.followUpObservationId))) fail('Measurement plan follow-up observation must resolve to the selected follow-up measurement.')
   }
   for (const outcome of outcomes) {
-    for (const id of outcome.measurementIds) if (!measurementsById.has(id)) fail(`Outcome ${outcome.id} references absent measurement ${id}.`)
+    const referenced = outcome.measurementIds.map((id) => {
+      const measurement = measurementsById.get(id)
+      if (!measurement) fail(`Outcome ${outcome.id} references absent measurement ${id}.`)
+      return measurement
+    })
     if (measurementPlan && !sameIdSet(outcome.measurementIds, [measurementPlan.baselineMeasurementId, measurementPlan.followUpMeasurementId])) fail(`Outcome ${outcome.id} must reference the exact supplied measurement-plan pair.`)
+    if (outcome.direction === 'improved' || outcome.direction === 'regressed' || outcome.direction === 'unchanged') {
+      const baselines = referenced.filter((measurement) => measurement.relationship.role === 'baseline')
+      const followUps = referenced.filter((measurement) => measurement.relationship.role === 'follow_up')
+      if (baselines.length !== 1 || followUps.length < 1 || referenced.length !== 1 + followUps.length) fail(`Directional outcome ${outcome.id} must reference one baseline/follow-up measurement set.`)
+      const baseline = baselines[0]!
+      if (baseline.comparability.state !== 'comparable' || followUps.some((followUp) => followUp.comparability.state !== 'comparable' || followUp.relationship.role !== 'follow_up' || followUp.relationship.baselineMeasurementId !== baseline.id)) fail(`Directional outcome ${outcome.id} requires comparable linked measurements.`)
+    }
   }
   for (const profile of interpretations) {
     const baseline = measurementsById.get(profile.comparability.baselineMeasurementId)
@@ -204,10 +218,11 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
     else if (planFollowUp.result.state === 'not_measured') { expectedState = 'follow_up_not_measured'; expectedReasons = measurementPlan.readiness.state === 'not_ready' ? measurementPlan.readiness.reasons : [] }
     else if (planFollowUp.comparability.state !== 'comparable') { expectedState = 'follow_up_not_comparable'; expectedReasons = measurementPlan.readiness.state === 'not_ready' ? measurementPlan.readiness.reasons : ['incomparable'] }
     else if (measurementPlan.readiness.state === 'not_ready') { expectedState = 'follow_up_not_ready'; expectedReasons = measurementPlan.readiness.reasons }
+    else if (!recordedMeasurementIds.includes(measurementPlan.baselineMeasurementId) || !recordedMeasurementIds.includes(measurementPlan.followUpMeasurementId)) { expectedState = 'measurements_not_recorded'; expectedReasons = [] }
     else { expectedState = 'ready_for_human_assessment'; expectedReasons = [] }
     if (readiness.state !== expectedState || !sameStrings(readiness.reasons, expectedReasons)) fail('Measurement cycle readiness contradicts the supplied Release 0.16 plan and measurement state.')
   }
-  return { schemaVersion: MEASUREMENT_SCHEMA_VERSION, schemaMinorVersion: MEASUREMENT_SCHEMA_MINOR_VERSION, identity: identity(root.identity), cycle: { dossierId: str(cycleRaw.dossierId, 'measurement.cycle.dossierId'), sourceServiceBriefId: str(cycleRaw.sourceServiceBriefId, 'measurement.cycle.sourceServiceBriefId'), decision: { id: str(decisionRaw.id, 'measurement.cycle.decision.id'), disposition: decisionDisposition, summary: str(decisionRaw.summary, 'measurement.cycle.decision.summary'), recordedAt: str(decisionRaw.recordedAt, 'measurement.cycle.decision.recordedAt') }, readiness, ...(measurementPlan ? { measurementPlan } : {}) }, measurements, outcomes, interpretations, authorityNotes: strings(root.authorityNotes, 'measurement.authorityNotes'), limitations: strings(root.limitations, 'measurement.limitations') }
+  return { schemaVersion: MEASUREMENT_SCHEMA_VERSION, schemaMinorVersion: MEASUREMENT_SCHEMA_MINOR_VERSION, identity: identity(root.identity), cycle: { dossierId: str(cycleRaw.dossierId, 'measurement.cycle.dossierId'), sourceServiceBriefId: str(cycleRaw.sourceServiceBriefId, 'measurement.cycle.sourceServiceBriefId'), decision: { id: str(decisionRaw.id, 'measurement.cycle.decision.id'), disposition: decisionDisposition, summary: str(decisionRaw.summary, 'measurement.cycle.decision.summary'), recordedAt: str(decisionRaw.recordedAt, 'measurement.cycle.decision.recordedAt') }, readiness, recordedMeasurementIds, ...(measurementPlan ? { measurementPlan } : {}) }, measurements, outcomes, interpretations, authorityNotes: strings(root.authorityNotes, 'measurement.authorityNotes'), limitations: strings(root.limitations, 'measurement.limitations') }
 }
 
 export function decodeMeasurementProjection(input: unknown, shell: WorkbenchProjection): MeasurementFeatureProjection {

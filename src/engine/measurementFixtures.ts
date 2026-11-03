@@ -97,7 +97,7 @@ function root(cycle: object, measurements: object[], interpretations: object[], 
 export const measurementFixtureData = {
   'follow-up-not-due': root({
     dossierId: 'decision-cycle:synthetic-follow-up-not-due', sourceServiceBriefId: 'service-brief:synthetic-human-review', decision,
-    readiness: { state: 'follow_up_not_due', reasons: ['follow_up_not_due'] },
+    readiness: { state: 'follow_up_not_due', reasons: ['follow_up_not_due'] }, recordedMeasurementIds: [],
     measurementPlan: plan(false, ['follow_up_not_due'], false),
   }, [baseline(), {
     id: 'measurement:synthetic-follow-up', relationship: { role: 'follow_up', baselineMeasurementId: 'measurement:synthetic-baseline' }, dueWindow,
@@ -105,17 +105,17 @@ export const measurementFixtureData = {
   }], [interpretation('blocked', 'unknown', ['canonical_measurement_result_unavailable'])]),
   'limited-comparison': root({
     dossierId: 'decision-cycle:synthetic-limited-comparison', sourceServiceBriefId: 'service-brief:synthetic-human-review', decision,
-    readiness: { state: 'follow_up_not_comparable', reasons: ['incomparable'] },
+    readiness: { state: 'follow_up_not_comparable', reasons: ['incomparable'] }, recordedMeasurementIds: ['measurement:synthetic-baseline', 'measurement:synthetic-follow-up'],
     measurementPlan: plan(false, ['incomparable']),
   }, [baseline(0), followUpMeasured(18, 'discontinuous')], [interpretation('blocked', 'discontinuous', ['source_or_method_context_changed'])]),
   'ready-for-assessment': root({
     dossierId: 'decision-cycle:synthetic-ready', sourceServiceBriefId: 'service-brief:synthetic-human-review', decision,
-    readiness: { state: 'ready_for_human_assessment', reasons: [] },
+    readiness: { state: 'ready_for_human_assessment', reasons: [] }, recordedMeasurementIds: ['measurement:synthetic-baseline', 'measurement:synthetic-follow-up'],
     measurementPlan: plan(true),
   }, [baseline(), followUpMeasured()], [interpretation('ready', 'comparable', [])]),
   'human-outcome': root({
     dossierId: 'decision-cycle:synthetic-outcome', sourceServiceBriefId: 'service-brief:synthetic-human-review', decision,
-    readiness: { state: 'outcome_recorded', reasons: [] },
+    readiness: { state: 'outcome_recorded', reasons: [] }, recordedMeasurementIds: ['measurement:synthetic-baseline', 'measurement:synthetic-follow-up'],
     measurementPlan: plan(true),
   }, [baseline(), followUpMeasured()], [interpretation('ready', 'comparable', [])], [{
     id: 'outcome:synthetic-human-001', direction: 'improved', measurementIds: ['measurement:synthetic-baseline', 'measurement:synthetic-follow-up'], comparability: 'comparable',
