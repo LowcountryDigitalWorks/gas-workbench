@@ -89,11 +89,24 @@ describe('Measurement feature projection boundary', () => {
 
     const falseNotDue = clone(measurementFixtureData['follow-up-not-due']) as { measurements: Record<string, unknown>[] }
     falseNotDue.measurements[1] = structuredClone((measurementFixtureData['ready-for-assessment'] as { measurements: Record<string, unknown>[] }).measurements[1])
-    expect(() => parseMeasurementProjection(falseNotDue)).toThrow('follow_up_not_due requires')
+    expect(() => parseMeasurementProjection(falseNotDue)).toThrow('Release 0.16 plan and measurement state')
 
     const falseReady = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { measurementPlan: { readiness: { state: string; reasons: string[] } } } }
     falseReady.cycle.measurementPlan.readiness = { state: 'not_ready', reasons: ['source_not_final'] }
-    expect(() => parseMeasurementProjection(falseReady)).toThrow('ready_for_human_assessment contradicts')
+    expect(() => parseMeasurementProjection(falseReady)).toThrow('Release 0.16 plan and measurement state')
+
+    const deferredReady = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { decision: { disposition: string } } }
+    deferredReady.cycle.decision.disposition = 'defer'
+    expect(() => parseMeasurementProjection(deferredReady)).toThrow('deferred_or_dismissed')
+
+    const notReady = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { readiness: { state: string; reasons: string[] }; measurementPlan: { readiness: { state: string; reasons: string[] } } } }
+    notReady.cycle.readiness = { state: 'follow_up_not_ready', reasons: ['source_not_final'] }
+    notReady.cycle.measurementPlan.readiness = { state: 'not_ready', reasons: ['source_not_final'] }
+    expect(parseMeasurementProjection(notReady).cycle.readiness).toEqual({ state: 'follow_up_not_ready', reasons: ['source_not_final'] })
+
+    const falseNotReady = clone(notReady)
+    falseNotReady.cycle.measurementPlan.readiness = { state: 'ready_for_human_assessment', reasons: [] }
+    expect(() => parseMeasurementProjection(falseNotReady)).toThrow('Release 0.16 plan and measurement state')
   })
 
   it('keeps Release 0.22 vocabularies strict without recomputing interpretation mappings', () => {

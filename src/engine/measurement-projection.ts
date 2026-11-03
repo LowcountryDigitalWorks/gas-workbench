@@ -90,6 +90,7 @@ function optionalString(x: Obj, k: string, p: string) { return x[k] === undefine
 function window(v: unknown, p: string) { const x = exact(v, p, ['start', 'end']), start = str(x.start, `${p}.start`), end = str(x.end, `${p}.end`); if (start > end) fail(`${p} is reversed.`); return { start, end } }
 function identity(v: unknown): MeasurementFeatureProjection['identity'] { const p = 'measurement.identity', x = exact(v, p, ['workspaceId', 'tenantId', 'siteId', 'siteScopeRevisionId', 'trustedTarget', 'generatedAt', 'evaluatedAt']); return { workspaceId: str(x.workspaceId, `${p}.workspaceId`), tenantId: str(x.tenantId, `${p}.tenantId`), siteId: str(x.siteId, `${p}.siteId`), siteScopeRevisionId: str(x.siteScopeRevisionId, `${p}.siteScopeRevisionId`), trustedTarget: str(x.trustedTarget, `${p}.trustedTarget`), generatedAt: str(x.generatedAt, `${p}.generatedAt`), evaluatedAt: str(x.evaluatedAt, `${p}.evaluatedAt`) } }
 function unique(values: readonly string[], p: string) { if (new Set(values).size !== values.length) fail(`${p} contains duplicate IDs.`) }
+function sameStrings(left: readonly string[], right: readonly string[]) { return left.length === right.length && left.every((value, index) => value === right[index]) }
 
 function parseMeasurement(raw: unknown, i: number): MeasurementFeatureProjection['measurements'][number] {
   const p = `measurement.measurements[${i}]`, x = exact(raw, p, ['id', 'relationship', 'dueWindow', 'result', 'comparability', 'methodology', 'createdAt'])
@@ -184,13 +185,24 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
     if (baseline === undefined || followUp === undefined) fail(`Interpretation ${profile.id} references absent measurement records.`)
     if (baseline.relationship.role !== 'baseline' || followUp.relationship.role !== 'follow_up' || followUp.relationship.baselineMeasurementId !== baseline.id) fail(`Interpretation ${profile.id} baseline/follow-up references must resolve to one linked measurement pair.`)
   }
-  if (readiness.state === 'outcome_recorded' && outcomes.length === 0) fail('outcome_recorded requires a supplied human outcome.')
-  if (readiness.state === 'follow_up_not_due' && (planFollowUp === undefined || planFollowUp.result.state !== 'not_due')) fail('follow_up_not_due requires a supplied not_due follow-up measurement.')
-  if (readiness.state === 'follow_up_not_measured' && (planFollowUp === undefined || planFollowUp.result.state !== 'not_measured')) fail('follow_up_not_measured requires a supplied not_measured follow-up measurement.')
-  if (readiness.state === 'follow_up_not_comparable' && (planFollowUp === undefined || planFollowUp.result.state !== 'measured' || planFollowUp.comparability.state === 'comparable')) fail('follow_up_not_comparable requires a measured non-comparable follow-up measurement.')
-  if (readiness.state === 'ready_for_human_assessment' && (measurementPlan?.readiness.state !== 'ready_for_human_assessment' || planFollowUp?.result.state !== 'measured' || planFollowUp.comparability.state !== 'comparable' || outcomes.length > 0)) fail('ready_for_human_assessment contradicts the supplied plan, follow-up, or outcome state.')
   const decisionDisposition = en(decisionRaw.disposition, ['investigate', 'recommend', 'defer', 'dismiss'] as const, 'measurement.cycle.decision.disposition')
-  if (readiness.state === 'deferred_or_dismissed' && decisionDisposition !== 'defer' && decisionDisposition !== 'dismiss') fail('deferred_or_dismissed requires a defer or dismiss decision.')
+  const deferred = decisionDisposition === 'defer' || decisionDisposition === 'dismiss'
+  if (deferred) {
+    if (readiness.state !== 'deferred_or_dismissed' || readiness.reasons.length !== 0) fail('Defer/dismiss decision must preserve deferred_or_dismissed cycle readiness.')
+  } else if (readiness.state === 'deferred_or_dismissed') fail('deferred_or_dismissed requires a defer or dismiss decision.')
+  else if (outcomes.length > 0) {
+    if (readiness.state !== 'outcome_recorded' || readiness.reasons.length !== 0) fail('Supplied human outcome must preserve outcome_recorded cycle readiness.')
+  } else if (readiness.state === 'outcome_recorded') fail('outcome_recorded requires a supplied human outcome.')
+  else if (measurementPlan && planFollowUp) {
+    let expectedState: MeasurementCycleReadiness
+    let expectedReasons: readonly string[]
+    if (planFollowUp.result.state === 'not_due') { expectedState = 'follow_up_not_due'; expectedReasons = ['follow_up_not_due'] }
+    else if (planFollowUp.result.state === 'not_measured') { expectedState = 'follow_up_not_measured'; expectedReasons = measurementPlan.readiness.state === 'not_ready' ? measurementPlan.readiness.reasons : [] }
+    else if (planFollowUp.comparability.state !== 'comparable') { expectedState = 'follow_up_not_comparable'; expectedReasons = measurementPlan.readiness.state === 'not_ready' ? measurementPlan.readiness.reasons : ['incomparable'] }
+    else if (measurementPlan.readiness.state === 'not_ready') { expectedState = 'follow_up_not_ready'; expectedReasons = measurementPlan.readiness.reasons }
+    else { expectedState = 'ready_for_human_assessment'; expectedReasons = [] }
+    if (readiness.state !== expectedState || !sameStrings(readiness.reasons, expectedReasons)) fail('Measurement cycle readiness contradicts the supplied Release 0.16 plan and measurement state.')
+  }
   return { schemaVersion: MEASUREMENT_SCHEMA_VERSION, schemaMinorVersion: MEASUREMENT_SCHEMA_MINOR_VERSION, identity: identity(root.identity), cycle: { dossierId: str(cycleRaw.dossierId, 'measurement.cycle.dossierId'), sourceServiceBriefId: str(cycleRaw.sourceServiceBriefId, 'measurement.cycle.sourceServiceBriefId'), decision: { id: str(decisionRaw.id, 'measurement.cycle.decision.id'), disposition: decisionDisposition, summary: str(decisionRaw.summary, 'measurement.cycle.decision.summary'), recordedAt: str(decisionRaw.recordedAt, 'measurement.cycle.decision.recordedAt') }, readiness, ...(measurementPlan ? { measurementPlan } : {}) }, measurements, outcomes, interpretations, authorityNotes: strings(root.authorityNotes, 'measurement.authorityNotes'), limitations: strings(root.limitations, 'measurement.limitations') }
 }
 
