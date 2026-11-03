@@ -88,6 +88,12 @@ describe('Report feature projection boundary', () => {
     wrongCounts.report.decision.recordedMeasurementCount = 1
     await expect(decodeReportProjection(wrongCounts, humanShell)).rejects.toThrow('measurement/outcome counts')
     expect((await decodeReportProjection(reportFixtureData['decision-outcome'], outcomeShell)).report.decision?.humanOutcomes).toHaveLength(1)
+    const wrongOutcomeDirection = clone(reportFixtureData['decision-outcome']) as unknown as { report: { decision: { humanOutcomes: { direction: string }[] } } }
+    wrongOutcomeDirection.report.decision.humanOutcomes[0].direction = 'regressed'
+    await expect(decodeReportProjection(wrongOutcomeDirection, outcomeShell)).rejects.toThrow('outcome direction/time')
+    const wrongOutcomeTime = clone(reportFixtureData['decision-outcome']) as unknown as { report: { decision: { humanOutcomes: { createdAt: string }[] } } }
+    wrongOutcomeTime.report.decision.humanOutcomes[0].createdAt = '2026-11-13T00:21:00Z'
+    await expect(decodeReportProjection(wrongOutcomeTime, outcomeShell)).rejects.toThrow('outcome direction/time')
   })
 
   it('keeps the internal appendix optional, bounded, and bound to verifiable current source references', async () => {

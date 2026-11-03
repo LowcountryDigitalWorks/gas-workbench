@@ -213,6 +213,12 @@ function validateDecisionBinding(report: ReportFeatureProjection['report'], work
   if (decision.recordedMeasurementCount !== navigation.recordedMeasurementCount || decision.humanOutcomes.length !== navigation.humanOutcomeCount) {
     fail('Report decision measurement/outcome counts contradict the current Workbench navigation summary.')
   }
+  const availableOutcomeTimeline = workspace.timeline.filter((entry) => entry.kind === 'outcome')
+  for (const outcome of decision.humanOutcomes) {
+    const index = availableOutcomeTimeline.findIndex((entry) => entry.at === outcome.createdAt && entry.state === outcome.direction)
+    if (index < 0) fail('Report human outcome direction/time does not resolve to the current Workbench outcome timeline.')
+    availableOutcomeTimeline.splice(index, 1)
+  }
   const recommendation = cycle.recommendation
   if (recommendation === undefined) {
     if (decision.recommendationLifecycle !== undefined || decision.recommendationRationale !== undefined) fail('Report recommendation context is stale for the current Workbench decision cycle.')
