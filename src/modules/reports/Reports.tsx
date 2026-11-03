@@ -116,7 +116,7 @@ export function Reports({ projection, fixture, chooseFixture }: {
     {report.internalAppendix && <details className="report-internal">
       <summary>Internal appendix · not customer narrative</summary>
       <Notice><strong>Internal provenance only.</strong><br/>These exact references support operator verification and stay visually separate from the customer-safe body.</Notice>
-      <code>{report.internalAppendix.workspaceId}</code><code>{report.internalAppendix.serviceBriefId}</code>{report.internalAppendix.decisionCycleDossierId && <code>{report.internalAppendix.decisionCycleDossierId}</code>}
+      <code>{report.internalAppendix.workspaceId}</code><code>{report.internalAppendix.serviceBriefId}</code>
       {report.internalAppendix.selectedAttentionIds.map((id) => <code key={id}>{id}</code>)}
     </details>}
   </section>

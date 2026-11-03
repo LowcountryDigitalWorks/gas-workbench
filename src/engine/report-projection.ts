@@ -85,8 +85,44 @@ function unique(values: readonly string[], path: string): void { if (new Set(val
 function period(value: unknown, path: string): Period { const parsed = exact(value, path, ['start', 'end']); const start = str(parsed.start, `${path}.start`), end = str(parsed.end, `${path}.end`); if (start > end) fail(`${path} is reversed.`); return { start, end } }
 function sameStrings(left: readonly string[], right: readonly string[]): boolean { return left.length === right.length && left.every((value, index) => value === right[index]) }
 function periodKey(value: Period): string { return `${value.start}|${value.end}` }
-function sameStringSet(left: readonly string[], right: readonly string[]): boolean { return left.length === right.length && [...left].sort().every((value, index) => value === [...right].sort()[index]) }
+function sameStringSet(left: readonly string[], right: readonly string[]): boolean {
+  const sortedLeft = [...left].sort(), sortedRight = [...right].sort()
+  return sortedLeft.length === sortedRight.length && sortedLeft.every((value, index) => value === sortedRight[index])
+}
 function samePeriodSet(left: readonly Period[], right: readonly Period[]): boolean { return sameStringSet(left.map(periodKey), right.map(periodKey)) }
+
+function reportIdentityMaterial(report: ReportFeatureProjection['report']): unknown {
+  return {
+    version: report.version,
+    title: report.title,
+    createdAt: report.createdAt,
+    context: report.context,
+    executiveSummary: report.executiveSummary,
+    readiness: report.readiness,
+    limitations: report.limitations,
+    observedChanges: report.observedChanges,
+    focusItems: report.focusItems,
+    decision: report.decision ?? null,
+    nextReview: report.nextReview,
+    sourceNotes: report.sourceNotes,
+    internalAppendix: report.internalAppendix ?? null,
+  }
+}
+function canonicalJson(value: unknown): string {
+  if (value === null) return 'null'
+  if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value)
+  if (typeof value === 'number' && Number.isFinite(value) && !Object.is(value, -0)) return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (typeof value !== 'object') fail('Report identity material is not canonical JSON data.')
+  const record = value as Record<string, unknown>
+  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(',')}}`
+}
+async function expectedReportId(report: ReportFeatureProjection['report']): Promise<string> {
+  const bytes = new TextEncoder().encode(canonicalJson(reportIdentityMaterial(report)))
+  if (bytes.byteLength > 65_536) fail('Release 0.17 report identity material exceeds the accepted canonical JSON bound.')
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+  return `customer-report:${[...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`
+}
 
 function parseDecision(value: unknown, path: string): NonNullable<ReportFeatureProjection['report']['decision']> {
   const parsed = exact(value, path, ['disposition', 'summary', 'readiness', 'measurementPlanned', 'recordedMeasurementCount', 'humanOutcomes'], ['recommendationLifecycle', 'recommendationRationale'])
@@ -150,11 +186,44 @@ export function parseReportProjection(input: unknown): ReportFeatureProjection {
   }
 }
 
+function customerLabel(attention: WorkbenchProjection['workspace']['attention'][number]): string {
+  if (attention.identity.url !== undefined) return attention.identity.url
+  if (attention.identity.query !== undefined) return attention.identity.query
+  if (attention.identity.promptId !== undefined) return 'AI visibility prompt evidence'
+  if (attention.identity.cohortHash !== undefined) return 'AI visibility cohort evidence'
+  return `${attention.moduleId.replaceAll('_', ' ')} evidence`
+}
 function focusMatchesAttention(focus: ReportFeatureProjection['report']['focusItems'][number], attention: WorkbenchProjection['workspace']['attention'][number]): boolean {
-  return focus.moduleId === attention.moduleId && focus.kind === attention.originalKind && focus.state === attention.originalState && sameStrings(focus.readinessContext, attention.readinessContext)
+  return focus.moduleId === attention.moduleId
+    && focus.kind === attention.originalKind
+    && focus.state === attention.originalState
+    && focus.label === customerLabel(attention)
+    && sameStrings(focus.readinessContext, attention.readinessContext)
+}
+function validateDecisionBinding(report: ReportFeatureProjection['report'], workspace: WorkbenchProjection['workspace']): void {
+  const cycle = workspace.decisionCycle, decision = report.decision, navigation = workspace.navigation.decisionCycle
+  if (cycle === undefined) {
+    if (decision !== undefined) fail('Report decision is stale because the current Workbench shell has no decision cycle.')
+    return
+  }
+  if (decision === undefined) fail('Report decision is missing for the current Workbench decision cycle.')
+  if (decision.disposition !== cycle.decision.disposition || decision.summary !== cycle.decision.summary || decision.readiness !== cycle.readiness.state) {
+    fail('Report decision summary contradicts the current Workbench decision cycle.')
+  }
+  if (decision.recordedMeasurementCount !== navigation.recordedMeasurementCount || decision.humanOutcomes.length !== navigation.humanOutcomeCount) {
+    fail('Report decision measurement/outcome counts contradict the current Workbench navigation summary.')
+  }
+  const recommendation = cycle.recommendation
+  if (recommendation === undefined) {
+    if (decision.recommendationLifecycle !== undefined || decision.recommendationRationale !== undefined) fail('Report recommendation context is stale for the current Workbench decision cycle.')
+  } else if (decision.recommendationLifecycle !== recommendation.lifecycle || decision.recommendationRationale === undefined) {
+    fail('Report recommendation lifecycle contradicts the current Workbench decision cycle.')
+  }
+  if (cycle.readiness.state === 'measurement_not_planned' && decision.measurementPlanned) fail('Report cannot claim a measurement plan when the current cycle says measurement_not_planned.')
+  if ((navigation.recordedMeasurementCount > 0 || navigation.humanOutcomeCount > 0) && !decision.measurementPlanned) fail('Report with recorded measurement/outcome state must preserve measurementPlanned=true.')
 }
 
-export function decodeReportProjection(input: unknown, shell: WorkbenchProjection): ReportFeatureProjection {
+export async function decodeReportProjection(input: unknown, shell: WorkbenchProjection): Promise<ReportFeatureProjection> {
   const feature = parseReportProjection(input), identity = feature.identity, workspace = shell.workspace, scope = workspace.scope, report = feature.report
   if (identity.workspaceId !== shell.source.workspaceId || identity.tenantId !== scope.tenantId || identity.siteId !== scope.siteId || identity.siteScopeRevisionId !== scope.siteScopeRevisionId || identity.trustedTarget !== workspace.trustedTarget || identity.generatedAt !== workspace.generatedAt || identity.evaluatedAt !== workspace.evaluatedAt) fail('Report feature and Workbench shell identities do not match.')
   if (report.context.siteId !== scope.siteId || report.context.target !== workspace.trustedTarget) fail('Report customer context does not match the current Workbench site/target.')
@@ -173,16 +242,21 @@ export function decodeReportProjection(input: unknown, shell: WorkbenchProjectio
   const availableAttention = [...workspace.attention]
   for (const focus of report.focusItems) {
     const index = availableAttention.findIndex((attention) => focusMatchesAttention(focus, attention))
-    if (index < 0) fail('Report focus item does not resolve to current supplied Attention evidence.')
+    if (index < 0) fail('Report focus item does not resolve to current supplied Attention evidence including its customer-safe label.')
     availableAttention.splice(index, 1)
   }
+  validateDecisionBinding(report, workspace)
   if (report.internalAppendix) {
     if (report.internalAppendix.workspaceId !== shell.source.workspaceId) fail('Internal appendix workspace identity is stale.')
+    const serviceBriefIds = workspace.timeline.filter((entry) => entry.kind === 'service_brief' && entry.referenceId !== undefined).map((entry) => entry.referenceId!)
+    if (!serviceBriefIds.includes(report.internalAppendix.serviceBriefId)) fail('Internal appendix serviceBriefId does not resolve to the current Workbench service-brief timeline.')
+    if (report.internalAppendix.decisionCycleDossierId !== undefined) fail('Internal appendix decisionCycleDossierId is not verifiable from Workbench projection minor 0 and is refused by this bounded slice.')
     report.internalAppendix.selectedAttentionIds.forEach((attentionId, index) => {
       const attention = workspace.attention.find((candidate) => candidate.id === attentionId)
       if (!attention) fail(`Internal appendix references absent Attention id ${attentionId}.`)
       if (!focusMatchesAttention(report.focusItems[index], attention)) fail('Internal appendix Attention selection does not correspond to the customer-safe focus order.')
     })
   }
+  if (report.id !== await expectedReportId(report)) fail('Report id does not match the Release 0.17 canonical content hash.')
   return feature
 }

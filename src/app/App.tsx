@@ -49,12 +49,19 @@ const icons = {
   measurement: 'chart-bar',
   reports: 'report',
 }
-const cases = {
+const cases: Record<FixtureId, string> = {
   quiet: 'Quiet',
   limited: 'Limited evidence',
   'human-review': 'Human review',
   'visibility-review': 'Visibility review',
   'technical-review': 'Technical review',
+  'report-outcome': 'Report outcome',
+  'report-internal': 'Report appendix',
+}
+function reportShellFixture(id: ReportFixtureId): FixtureId {
+  if (id === 'decision-outcome') return 'report-outcome'
+  if (id === 'internal-appendix') return 'report-internal'
+  return 'human-review'
 }
 const emptyDraft = { rationale: '', disposition: 'Request review' }
 export function App() {
@@ -127,7 +134,7 @@ export function App() {
     return () => { active = false }
   }, [projection, fixture, measurementCase])
   useEffect(() => {
-    if (!projection || fixture !== 'human-review') return
+    if (!projection || fixture !== reportShellFixture(reportCase)) return
     let active = true
     loadReportFixture(reportCase, projection).then((value) => {
       if (active) setReport({ value })
@@ -159,8 +166,9 @@ export function App() {
       setAttention(undefined)
       setMeasurement({})
     }
-    if (next === 'reports' && fixture !== 'human-review') {
-      setFixture('human-review')
+    const expectedReportShell = reportShellFixture(reportCase)
+    if (next === 'reports' && fixture !== expectedReportShell) {
+      setFixture(expectedReportShell)
       setResult({})
       setSelected(undefined)
       setAttention(undefined)
@@ -182,6 +190,17 @@ export function App() {
     setSelected(undefined)
     setAttention(undefined)
     navigate('home')
+  }
+  function chooseReportCase(next: ReportFixtureId) {
+    const nextShell = reportShellFixture(next)
+    setReportCase(next)
+    setReport({})
+    if (nextShell !== fixture) {
+      setFixture(nextShell)
+      setResult({})
+      setSelected(undefined)
+      setAttention(undefined)
+    }
   }
   function showContext() {
     dialogOpener.current = document.activeElement as HTMLElement
@@ -349,7 +368,7 @@ export function App() {
               measurement.value ? <Measurement projection={measurement.value} fixture={measurementCase} chooseFixture={(id) => { setMeasurementCase(id); setMeasurement({}) }} /> : <section className="error-state" role={measurement.error ? 'alert' : 'status'}><h2>{measurement.error ? 'Measure / Outcomes unavailable' : 'Checking measurement projection'}</h2><p>{measurement.error ?? 'Validating measurement-cycle identity and supplied semantics…'}</p></section>
             )}
             {view === 'reports' && (
-              report.value ? <Reports projection={report.value} fixture={reportCase} chooseFixture={(id) => { setReportCase(id); setReport({}) }} /> : <section className="error-state" role={report.error ? 'alert' : 'status'}><h2>{report.error ? 'Reports unavailable' : 'Checking report projection'}</h2><p>{report.error ?? 'Validating Release 0.17 report identity, source binding, and customer-safe focus…'}</p></section>
+              report.value ? <Reports projection={report.value} fixture={reportCase} chooseFixture={chooseReportCase} /> : <section className="error-state" role={report.error ? 'alert' : 'status'}><h2>{report.error ? 'Reports unavailable' : 'Checking report projection'}</h2><p>{report.error ?? 'Validating Release 0.17 report identity, source binding, and customer-safe focus…'}</p></section>
             )}
             {view === 'evidence' && (
               <Evidence
