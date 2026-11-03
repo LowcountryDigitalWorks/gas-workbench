@@ -1,4 +1,4 @@
-﻿{
+{
     "identity":  {
                      "evaluatedAt":  "2026-11-02T20:50:00Z",
                      "workspaceId":  "workspace:measurement-follow-up-not-due",
@@ -35,7 +35,6 @@
                                },
                  "baselineMeasurementId":  "measurement:baseline",
                  "target":  {
-                                "followUpObservationId":  "observation:follow-up-clicks",
                                 "rowIdentity":  "row:synthetic-services",
                                 "baselineObservationId":  "observation:baseline-clicks",
                                 "metric":  "clicks",
@@ -70,7 +69,7 @@
                                                "end":  "2026-10-28T23:59:59Z"
                                            },
                              "methodology":  {
-                                                 "id":  "search-analytics-change",
+                                                 "id":  "ldw-search-change-cohort",
                                                  "version":  "1.0.0"
                                              },
                              "result":  {
@@ -110,7 +109,7 @@
                                                   "baselineMeasurementId":  "measurement:baseline"
                                               },
                              "methodology":  {
-                                                 "id":  "search-analytics-change",
+                                                 "id":  "ldw-search-change-cohort",
                                                  "version":  "1.0.0"
                                              },
                              "createdAt":  "2026-11-29T00:00:00Z"

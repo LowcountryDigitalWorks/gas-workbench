@@ -1,4 +1,4 @@
-﻿{
+{
     "identity":  {
                      "evaluatedAt":  "2026-11-02T20:50:00Z",
                      "workspaceId":  "workspace:measurement-blocked-not-interpretable",
@@ -13,9 +13,9 @@
                            "Human outcome direction is preserved as recorded and is not inferred from numeric movement."
                        ],
     "cycleReadiness":  {
-                           "state":  "follow_up_not_ready",
+                           "state":  "ready_for_human_assessment",
                            "reasons":  [
-                                           "follow_up_not_ready"
+
                                        ]
                        },
     "decision":  {
@@ -28,9 +28,9 @@
                  "id":  "search-change-plan:blocked-not-interpretable",
                  "followUpMeasurementId":  "measurement:follow-up",
                  "readiness":  {
-                                   "state":  "not_ready",
+                                   "state":  "ready_for_human_assessment",
                                    "reasons":  [
-                                                   "target_missing"
+
                                                ]
                                },
                  "baselineMeasurementId":  "measurement:baseline",
@@ -70,7 +70,7 @@
                                                "end":  "2026-10-28T23:59:59Z"
                                            },
                              "methodology":  {
-                                                 "id":  "search-analytics-change",
+                                                 "id":  "ldw-search-change-cohort",
                                                  "version":  "1.0.0"
                                              },
                              "result":  {
@@ -105,7 +105,7 @@
                                                "end":  "2026-11-28T23:59:59Z"
                                            },
                              "methodology":  {
-                                                 "id":  "search-analytics-change",
+                                                 "id":  "ldw-search-change-cohort",
                                                  "version":  "1.0.0"
                                              },
                              "result":  {

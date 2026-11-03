@@ -132,20 +132,115 @@ function parseInterpretation(raw: unknown): NonNullable<MeasurementProjection['i
   return {id:str(x.id,`${p}.id`),methodology:{id:'ldw-measurement-interpretation-claim-ceilings',version:'1.0.0',release:'0.22.0'},designClass:en(x.designClass,DESIGN_CLASSES,`${p}.designClass`),exposure:{state:en(exposure.state,EXPOSURE_STATES,`${p}.exposure.state`),...(opt(exposure,'methodId',`${p}.exposure`)?{methodId:exposure.methodId as string}:{}),...(opt(exposure,'methodVersion',`${p}.exposure`)?{methodVersion:exposure.methodVersion as string}:{}),...(opt(exposure,'evidenceReference',`${p}.exposure`)?{evidenceReference:exposure.evidenceReference as string}:{})},comparability:{state:comparisonState,reasons,baselineMeasurementId:str(comparison.baselineMeasurementId,`${p}.comparability.baselineMeasurementId`),followUpMeasurementId:str(comparison.followUpMeasurementId,`${p}.comparability.followUpMeasurementId`)},readiness,claimCeiling,allowedClaimCodes:allowed,prohibitedOverclaimCodes:prohibited,limitations:strs(x.limitations,`${p}.limitations`)}
 }
 
+function observationIds(measurement: MeasurementProjection['measurements'][number]): Set<string> {
+  return new Set(measurement.result.state === 'measured' ? measurement.result.observations?.map((item) => item.referenceId) ?? [] : [])
+}
+function sameStrings(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index])
+}
+function validateSearchChangePlan(
+  plan: NonNullable<MeasurementProjection['plan']>,
+  baseline: MeasurementProjection['measurements'][number],
+  follow: MeasurementProjection['measurements'][number],
+): void {
+  if (baseline.result.state !== 'measured' || !observationIds(baseline).has(plan.target.baselineObservationId))
+    fail('Measurement plan baselineObservationId must resolve to the supplied measured baseline record.')
+  for (const record of [baseline, follow]) {
+    if (record.methodology.id !== 'ldw-search-change-cohort' || record.methodology.version !== '1.0.0')
+      fail('Search Change plan measurements must preserve accepted methodology ldw-search-change-cohort / 1.0.0.')
+  }
+
+  const followObservationId = plan.target.followUpObservationId
+  if (follow.result.state === 'measured') {
+    if (followObservationId === undefined || !observationIds(follow).has(followObservationId))
+      fail('Measured Search Change follow-up must supply and resolve followUpObservationId.')
+    if (follow.comparability.state !== 'comparable') {
+      if (plan.readiness.state !== 'not_ready' || !plan.readiness.reasons.includes('incomparable'))
+        fail('Non-comparable measured Search Change follow-up must preserve not_ready / incomparable readiness.')
+    }
+    if (plan.readiness.state === 'not_ready') {
+      const allowedMeasuredReasons = new Set(['source_not_final','coverage_incomplete','coverage_anonymized','coverage_truncated','incomparable'])
+      if (plan.readiness.reasons.some((reason) => !allowedMeasuredReasons.has(reason)))
+        fail('Measured Search Change follow-up carries a readiness reason impossible for measured producer output.')
+    }
+    return
+  }
+
+  if (followObservationId !== undefined) fail('Unmeasured Search Change follow-up cannot claim followUpObservationId.')
+  if (plan.readiness.state !== 'not_ready') fail('Unmeasured Search Change follow-up cannot be ready for human assessment.')
+  if (follow.result.state === 'not_due') {
+    if (!sameStrings(plan.readiness.reasons, ['follow_up_not_due']))
+      fail('Search Change not_due follow-up must preserve the exact follow_up_not_due readiness reason.')
+    return
+  }
+  if (plan.readiness.reasons.length !== 1 || !['follow_up_not_measured','target_missing'].includes(plan.readiness.reasons[0]))
+    fail('Search Change not_measured follow-up must preserve follow_up_not_measured or target_missing readiness.')
+}
+function visiblyBlocksComparableInterpretation(
+  baseline: MeasurementProjection['measurements'][number],
+  follow: MeasurementProjection['measurements'][number],
+): boolean {
+  if (baseline.comparability.state !== 'comparable' || follow.comparability.state !== 'comparable') return true
+  if (baseline.result.state !== 'measured' || follow.result.state !== 'measured') return true
+  if (baseline.result.observations?.some((item) => item.value.state !== 'observed') || follow.result.observations?.some((item) => item.value.state !== 'observed')) return true
+  if (baseline.methodology.id !== follow.methodology.id || baseline.methodology.version !== follow.methodology.version) return true
+  return (baseline.result.observedWindow?.end ?? '') > (follow.result.observedWindow?.start ?? '')
+}
+function validateCycleReadiness(
+  decision: MeasurementProjection['decision'],
+  cycle: MeasurementProjection['cycleReadiness'],
+  plan: MeasurementProjection['plan'],
+  byId: ReadonlyMap<string, MeasurementProjection['measurements'][number]>,
+  outcomeCount: number,
+): void {
+  if (decision.disposition === 'defer' || decision.disposition === 'dismiss') {
+    if (cycle.state !== 'deferred_or_dismissed' || cycle.reasons.length !== 0) fail('Deferred/dismissed decision must preserve deferred_or_dismissed cycle readiness.')
+    return
+  }
+  if (outcomeCount > 0) {
+    if (cycle.state !== 'outcome_recorded' || cycle.reasons.length !== 0) fail('Recorded human outcome must preserve outcome_recorded cycle readiness.')
+    return
+  }
+  if (plan === undefined) return
+  const follow = byId.get(plan.followUpMeasurementId)
+  if (!follow) return
+  let state: MeasurementProjection['cycleReadiness']['state']
+  let reasons: readonly string[]
+  if (follow.result.state === 'not_due') { state='follow_up_not_due'; reasons=['follow_up_not_due'] }
+  else if (follow.result.state === 'not_measured') { state='follow_up_not_measured'; reasons=plan.readiness.state === 'not_ready' ? plan.readiness.reasons : [] }
+  else if (follow.comparability.state !== 'comparable') { state='follow_up_not_comparable'; reasons=plan.readiness.state === 'not_ready' ? plan.readiness.reasons : ['incomparable'] }
+  else if (plan.readiness.state === 'not_ready') { state='follow_up_not_ready'; reasons=plan.readiness.reasons }
+  else { state='ready_for_human_assessment'; reasons=[] }
+  if (cycle.state !== state || !sameStrings(cycle.reasons, reasons)) fail('Measurement cycle readiness contradicts the supplied Search Change plan and recorded measurements.')
+}
+
 export function parseMeasurementProjection(input: unknown): MeasurementProjection {
   const root=exact(input,'measurement',['schemaVersion','schemaMinorVersion','identity','decision','cycleReadiness','measurements','outcomes','authorityNotes','limitations'],['plan','interpretation'])
   if(root.schemaVersion!==MEASUREMENT_SCHEMA_VERSION||root.schemaMinorVersion!==MEASUREMENT_SCHEMA_MINOR_VERSION) fail('Unsupported Measurement projection schema/version.')
   const i=exact(root.identity,'measurement.identity',['workspaceId','tenantId','siteId','siteScopeRevisionId','trustedTarget','generatedAt','evaluatedAt']), d=exact(root.decision,'measurement.decision',['id','disposition','summary','recordedAt']), c=exact(root.cycleReadiness,'measurement.cycleReadiness',['state','reasons'])
+  const decision: MeasurementProjection['decision']={id:str(d.id,'measurement.decision.id'),disposition:en(d.disposition,['investigate','recommend','defer','dismiss'] as const,'measurement.decision.disposition'),summary:str(d.summary,'measurement.decision.summary'),recordedAt:str(d.recordedAt,'measurement.decision.recordedAt')}
+  const cycleReadiness: MeasurementProjection['cycleReadiness']={state:en(c.state,CYCLE_READINESS,'measurement.cycleReadiness.state'),reasons:strs(c.reasons,'measurement.cycleReadiness.reasons')}
   const measurements=arr(root.measurements,'measurement.measurements').map(parseMeasurement), outcomes=arr(root.outcomes,'measurement.outcomes').map(parseOutcome)
   unique(measurements.map(m=>m.id),'measurement.measurements'); unique(outcomes.map(o=>o.id),'measurement.outcomes')
   const byId=new Map(measurements.map(m=>[m.id,m]))
   for(const measurement of measurements) if(measurement.relationship.role==='follow_up') { const baseline=byId.get(measurement.relationship.baselineMeasurementId!); if(!baseline||baseline.relationship.role!=='baseline') fail(`Follow-up measurement ${measurement.id} must reference a supplied baseline measurement.`) }
   const plan=root.plan===undefined?undefined:parsePlan(root.plan)
-  if(plan) { const baseline=byId.get(plan.baselineMeasurementId), follow=byId.get(plan.followUpMeasurementId); if(!baseline||baseline.relationship.role!=='baseline') fail('Measurement plan baselineMeasurementId must resolve to a supplied baseline.'); if(!follow||follow.relationship.role!=='follow_up'||follow.relationship.baselineMeasurementId!==baseline.id) fail('Measurement plan followUpMeasurementId must resolve to its supplied follow-up pair.') }
+  if(plan) {
+    const baseline=byId.get(plan.baselineMeasurementId), follow=byId.get(plan.followUpMeasurementId)
+    if(!baseline||baseline.relationship.role!=='baseline') fail('Measurement plan baselineMeasurementId must resolve to a supplied baseline.')
+    if(!follow||follow.relationship.role!=='follow_up'||follow.relationship.baselineMeasurementId!==baseline.id) fail('Measurement plan followUpMeasurementId must resolve to its supplied follow-up pair.')
+    validateSearchChangePlan(plan,baseline,follow)
+  }
   for(const outcome of outcomes) for(const id of outcome.measurementIds) if(!byId.has(id)) fail(`Outcome ${outcome.id} references absent measurement ${id}.`)
   const interpretation=root.interpretation===undefined?undefined:parseInterpretation(root.interpretation)
-  if(interpretation) { const baseline=byId.get(interpretation.comparability.baselineMeasurementId), follow=byId.get(interpretation.comparability.followUpMeasurementId); if(!baseline||baseline.relationship.role!=='baseline') fail('Interpretation baselineMeasurementId must resolve to a supplied baseline.'); if(!follow||follow.relationship.role!=='follow_up'||follow.relationship.baselineMeasurementId!==baseline.id) fail('Interpretation followUpMeasurementId must resolve to the supplied baseline/follow-up pair.') }
-  return {schemaVersion:MEASUREMENT_SCHEMA_VERSION,schemaMinorVersion:MEASUREMENT_SCHEMA_MINOR_VERSION,identity:{workspaceId:str(i.workspaceId,'measurement.identity.workspaceId'),tenantId:str(i.tenantId,'measurement.identity.tenantId'),siteId:str(i.siteId,'measurement.identity.siteId'),siteScopeRevisionId:str(i.siteScopeRevisionId,'measurement.identity.siteScopeRevisionId'),trustedTarget:str(i.trustedTarget,'measurement.identity.trustedTarget'),generatedAt:str(i.generatedAt,'measurement.identity.generatedAt'),evaluatedAt:str(i.evaluatedAt,'measurement.identity.evaluatedAt')},decision:{id:str(d.id,'measurement.decision.id'),disposition:en(d.disposition,['investigate','recommend','defer','dismiss'] as const,'measurement.decision.disposition'),summary:str(d.summary,'measurement.decision.summary'),recordedAt:str(d.recordedAt,'measurement.decision.recordedAt')},cycleReadiness:{state:en(c.state,CYCLE_READINESS,'measurement.cycleReadiness.state'),reasons:strs(c.reasons,'measurement.cycleReadiness.reasons')},...(plan?{plan}:{}),measurements,outcomes,...(interpretation?{interpretation}:{}),authorityNotes:strs(root.authorityNotes,'measurement.authorityNotes'),limitations:strs(root.limitations,'measurement.limitations')}
+  if(interpretation) {
+    const baseline=byId.get(interpretation.comparability.baselineMeasurementId), follow=byId.get(interpretation.comparability.followUpMeasurementId)
+    if(!baseline||baseline.relationship.role!=='baseline') fail('Interpretation baselineMeasurementId must resolve to a supplied baseline.')
+    if(!follow||follow.relationship.role!=='follow_up'||follow.relationship.baselineMeasurementId!==baseline.id) fail('Interpretation followUpMeasurementId must resolve to the supplied baseline/follow-up pair.')
+    if(interpretation.comparability.state==='comparable' && visiblyBlocksComparableInterpretation(baseline,follow)) fail('Interpretation cannot claim comparable when projected canonical measurement records visibly block comparability.')
+  }
+  validateCycleReadiness(decision,cycleReadiness,plan,byId,outcomes.length)
+  return {schemaVersion:MEASUREMENT_SCHEMA_VERSION,schemaMinorVersion:MEASUREMENT_SCHEMA_MINOR_VERSION,identity:{workspaceId:str(i.workspaceId,'measurement.identity.workspaceId'),tenantId:str(i.tenantId,'measurement.identity.tenantId'),siteId:str(i.siteId,'measurement.identity.siteId'),siteScopeRevisionId:str(i.siteScopeRevisionId,'measurement.identity.siteScopeRevisionId'),trustedTarget:str(i.trustedTarget,'measurement.identity.trustedTarget'),generatedAt:str(i.generatedAt,'measurement.identity.generatedAt'),evaluatedAt:str(i.evaluatedAt,'measurement.identity.evaluatedAt')},decision,cycleReadiness,...(plan?{plan}:{}),measurements,outcomes,...(interpretation?{interpretation}:{}),authorityNotes:strs(root.authorityNotes,'measurement.authorityNotes'),limitations:strs(root.limitations,'measurement.limitations')}
 }
 export function decodeMeasurementProjection(input: unknown, shell: WorkbenchProjection): MeasurementProjection {
   const feature=parseMeasurementProjection(input), scope=shell.workspace.scope, cycle=shell.workspace.decisionCycle

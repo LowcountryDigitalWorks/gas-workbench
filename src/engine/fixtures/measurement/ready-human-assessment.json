@@ -1,4 +1,4 @@
-﻿{
+{
     "identity":  {
                      "evaluatedAt":  "2026-11-02T20:50:00Z",
                      "workspaceId":  "workspace:measurement-ready-human-assessment",
@@ -70,7 +70,7 @@
                                                "end":  "2026-10-28T23:59:59Z"
                                            },
                              "methodology":  {
-                                                 "id":  "search-analytics-change",
+                                                 "id":  "ldw-search-change-cohort",
                                                  "version":  "1.0.0"
                                              },
                              "result":  {
@@ -106,7 +106,7 @@
                                                "end":  "2026-11-28T23:59:59Z"
                                            },
                              "methodology":  {
-                                                 "id":  "search-analytics-change",
+                                                 "id":  "ldw-search-change-cohort",
                                                  "version":  "1.0.0"
                                              },
                              "result":  {

@@ -139,9 +139,9 @@
                                     ],
                       "decisionCycle":  {
                                             "readiness":  {
-                                                              "state":  "follow_up_not_ready",
+                                                              "state":  "ready_for_human_assessment",
                                                               "reasons":  [
-                                                                              "follow_up_not_ready"
+
                                                                           ]
                                                           },
                                             "decision":  {
@@ -177,7 +177,7 @@
                                        },
                                        {
                                            "label":  "Follow-up measurement state supplied",
-                                           "state":  "follow_up_not_ready",
+                                           "state":  "ready_for_human_assessment",
                                            "at":  "2026-11-02T20:45:00Z",
                                            "referenceId":  "measurement:follow-up",
                                            "kind":  "measurement"
@@ -206,7 +206,7 @@
                                                        },
                                          "decisionCycle":  {
                                                                "supplied":  true,
-                                                               "readiness":  "follow_up_not_ready",
+                                                               "readiness":  "ready_for_human_assessment",
                                                                "recordedMeasurementCount":  2,
                                                                "humanOutcomeCount":  0
                                                            },

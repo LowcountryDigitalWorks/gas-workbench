@@ -17,15 +17,22 @@ const copy = <T,>(value: T): T => structuredClone(value)
 type MutableMeasurementFixture = {
   measurements: Array<{
     relationship: { baselineMeasurementId?: string }
-    result: Record<string, unknown>
-    comparability: Record<string, unknown>
+    result: {
+      state?: string
+      reason?: string
+      observedWindow?: { start: string; end: string }
+      observations?: Array<{ referenceId: string; value: { state: string; type?: string; value?: unknown; reason?: string } }>
+    }
+    comparability: { state?: string; reason?: string }
+    methodology: { id: string; version: string }
   }>
   plan: {
     followUpMeasurementId: string
-    readiness: { reasons: string[] }
+    target: { baselineObservationId: string; followUpObservationId?: string }
+    readiness: { state: string; reasons: string[] }
   }
   interpretation: {
-    comparability: { baselineMeasurementId: string }
+    comparability: { state: string; reasons: string[]; baselineMeasurementId: string; followUpMeasurementId: string }
     claimCeiling: string
     readiness: string
     allowedClaimCodes: string[]
@@ -33,6 +40,7 @@ type MutableMeasurementFixture = {
   }
   outcomes: Array<{ measurementIds: string[] }>
   decision: { summary: string }
+  cycleReadiness: { state: string; reasons: string[] }
 }
 
 type MutableShellFixture = {
@@ -55,7 +63,7 @@ describe('Measurement feature projection boundary', () => {
       [incomparable, incomparableShell, 'follow_up_not_comparable'],
       [ready, readyShell, 'ready_for_human_assessment'],
       [outcome, outcomeShell, 'outcome_recorded'],
-      [blocked, blockedShell, 'follow_up_not_ready'],
+      [blocked, blockedShell, 'ready_for_human_assessment'],
     ] as const
     for (const [feature, shell, expected] of cases) {
       expect(decodeMeasurementProjection(feature, decodeWorkbenchProjection(shell)).cycleReadiness.state).toBe(expected)
@@ -99,6 +107,71 @@ describe('Measurement feature projection boundary', () => {
     const badOutcome = mutableFeature(outcome)
     badOutcome.outcomes[0].measurementIds[1] = 'measurement:missing'
     expect(() => parseMeasurementProjection(badOutcome)).toThrow('references absent measurement')
+  })
+
+  it('binds Search Change observation identities, methodology, and readiness to the linked records', () => {
+    const badBaselineObservation = mutableFeature(ready)
+    badBaselineObservation.plan.target.baselineObservationId = 'observation:missing'
+    expect(() => parseMeasurementProjection(badBaselineObservation)).toThrow('baselineObservationId must resolve')
+
+    const badFollowObservation = mutableFeature(ready)
+    badFollowObservation.plan.target.followUpObservationId = 'observation:missing'
+    expect(() => parseMeasurementProjection(badFollowObservation)).toThrow('followUpObservationId')
+
+    const badMethodology = mutableFeature(ready)
+    badMethodology.measurements[1].methodology.id = 'invented-methodology'
+    expect(() => parseMeasurementProjection(badMethodology)).toThrow('ldw-search-change-cohort')
+
+    const nonComparableClaimedReady = mutableFeature(incomparable)
+    nonComparableClaimedReady.plan.readiness.state = 'ready_for_human_assessment'
+    nonComparableClaimedReady.plan.readiness.reasons = []
+    expect(() => parseMeasurementProjection(nonComparableClaimedReady)).toThrow('Non-comparable measured Search Change')
+
+    const notDueClaimedReady = mutableFeature(followUp)
+    notDueClaimedReady.plan.readiness.state = 'ready_for_human_assessment'
+    notDueClaimedReady.plan.readiness.reasons = []
+    expect(() => parseMeasurementProjection(notDueClaimedReady)).toThrow('Unmeasured Search Change follow-up cannot be ready')
+
+    const wrongNotDueReason = mutableFeature(followUp)
+    wrongNotDueReason.plan.readiness.reasons = ['target_missing']
+    expect(() => parseMeasurementProjection(wrongNotDueReason)).toThrow('exact follow_up_not_due')
+  })
+
+  it('prevents Release 0.22 comparable interpretation from outrunning visible canonical evidence', () => {
+    const unknownObservation = mutableFeature(ready)
+    unknownObservation.measurements[0].result.observations![0].value = { state: 'unknown', reason: 'synthetic missing observation' }
+    expect(() => parseMeasurementProjection(unknownObservation)).toThrow('visibly block comparability')
+
+    const discontinuousRecord = mutableFeature(incomparable)
+    discontinuousRecord.interpretation.comparability.state = 'comparable'
+    discontinuousRecord.interpretation.comparability.reasons = []
+    discontinuousRecord.interpretation.claimCeiling = 'temporal_association_only'
+    discontinuousRecord.interpretation.readiness = 'ready'
+    discontinuousRecord.interpretation.allowedClaimCodes = ['observed_temporal_change']
+    expect(() => parseMeasurementProjection(discontinuousRecord)).toThrow('visibly block comparability')
+
+    const unavailableFollowUp = mutableFeature(followUp)
+    unavailableFollowUp.interpretation.comparability.state = 'comparable'
+    unavailableFollowUp.interpretation.comparability.reasons = []
+    unavailableFollowUp.interpretation.claimCeiling = 'temporal_association_only'
+    unavailableFollowUp.interpretation.readiness = 'ready'
+    unavailableFollowUp.interpretation.allowedClaimCodes = ['observed_temporal_change']
+    expect(() => parseMeasurementProjection(unavailableFollowUp)).toThrow('visibly block comparability')
+
+    const overlappingWindows = mutableFeature(ready)
+    overlappingWindows.measurements[0].result.observedWindow!.end = '2026-11-02T00:00:00Z'
+    expect(() => parseMeasurementProjection(overlappingWindows)).toThrow('visibly block comparability')
+  })
+
+  it('keeps Release 0.16 cycle readiness coherent with projected plan, records, and outcomes', () => {
+    const badPlanCycle = mutableFeature(ready)
+    badPlanCycle.cycleReadiness.state = 'follow_up_not_ready'
+    badPlanCycle.cycleReadiness.reasons = ['source_not_final']
+    expect(() => parseMeasurementProjection(badPlanCycle)).toThrow('cycle readiness contradicts')
+
+    const badOutcomeCycle = mutableFeature(outcome)
+    badOutcomeCycle.cycleReadiness.state = 'ready_for_human_assessment'
+    expect(() => parseMeasurementProjection(badOutcomeCycle)).toThrow('outcome_recorded')
   })
 
   it('keeps result-state shapes fail-closed', () => {
