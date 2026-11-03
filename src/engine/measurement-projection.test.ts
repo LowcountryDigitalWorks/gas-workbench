@@ -117,8 +117,8 @@ describe('Measurement feature projection boundary', () => {
 
     const unrecorded = clone(measurementFixtureData['ready-for-assessment']) as { cycle: { readiness: { state: string; reasons: string[] }; recordedMeasurementIds: string[] } }
     unrecorded.cycle.recordedMeasurementIds = []
-    unrecorded.cycle.readiness = { state: 'measurements_not_recorded', reasons: [] }
-    expect(parseMeasurementProjection(unrecorded).cycle.readiness).toEqual({ state: 'measurements_not_recorded', reasons: [] })
+    unrecorded.cycle.readiness = { state: 'measurements_not_recorded', reasons: ['prepared_measurements_not_yet_recorded'] }
+    expect(parseMeasurementProjection(unrecorded).cycle.readiness).toEqual({ state: 'measurements_not_recorded', reasons: ['prepared_measurements_not_yet_recorded'] })
 
     const falseRecorded = clone(unrecorded)
     falseRecorded.cycle.readiness = { state: 'ready_for_human_assessment', reasons: [] }
@@ -168,6 +168,19 @@ describe('Measurement feature projection boundary', () => {
 
     const discontinuous = clone(measurementFixtureData['human-outcome']) as { measurements: { comparability: Record<string, unknown> }[] }
     discontinuous.measurements[1].comparability = { state: 'discontinuous', reason: 'Synthetic discontinuity.' }
-    expect(() => parseMeasurementProjection(discontinuous)).toThrow('requires comparable linked measurements')
+    expect(() => parseMeasurementProjection(discontinuous)).toThrow('requires comparable linked measured records')
+
+    const unmeasured = clone(measurementFixtureData['human-outcome']) as { cycle: Record<string, unknown>; measurements: { result: Record<string, unknown> }[] }
+    delete unmeasured.cycle.measurementPlan
+    unmeasured.measurements[1].result = { state: 'not_measured', reason: 'No observed follow-up.' }
+    expect(() => parseMeasurementProjection(unmeasured)).toThrow('requires comparable linked measured records')
+
+    const changedMethod = clone(measurementFixtureData['human-outcome']) as { measurements: { methodology: { id: string; version: string } }[] }
+    changedMethod.measurements[1].methodology = { ...changedMethod.measurements[1].methodology, version: '2.0.0' }
+    expect(() => parseMeasurementProjection(changedMethod)).toThrow('consistent methodology and chronology')
+
+    const overlapping = clone(measurementFixtureData['human-outcome']) as { measurements: { result: { state: string; observedWindow?: { start: string; end: string } } }[] }
+    overlapping.measurements[1].result.observedWindow = { start: '2026-10-02T00:00:00Z', end: '2026-10-25T23:59:59Z' }
+    expect(() => parseMeasurementProjection(overlapping)).toThrow('consistent methodology and chronology')
   })
 })

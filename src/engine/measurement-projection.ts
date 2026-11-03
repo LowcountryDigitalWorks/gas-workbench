@@ -194,7 +194,7 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
       const followUps = referenced.filter((measurement) => measurement.relationship.role === 'follow_up')
       if (baselines.length !== 1 || followUps.length < 1 || referenced.length !== 1 + followUps.length) fail(`Directional outcome ${outcome.id} must reference one baseline/follow-up measurement set.`)
       const baseline = baselines[0]!
-      if (baseline.comparability.state !== 'comparable' || followUps.some((followUp) => followUp.comparability.state !== 'comparable' || followUp.relationship.role !== 'follow_up' || followUp.relationship.baselineMeasurementId !== baseline.id)) fail(`Directional outcome ${outcome.id} requires comparable linked measurements.`)
+      if (baseline.comparability.state !== 'comparable' || baseline.result.state !== 'measured' || followUps.some((followUp) => followUp.comparability.state !== 'comparable' || followUp.result.state !== 'measured' || followUp.relationship.role !== 'follow_up' || followUp.relationship.baselineMeasurementId !== baseline.id || followUp.methodology.id !== baseline.methodology.id || followUp.methodology.version !== baseline.methodology.version || (baseline.result.state === 'measured' && followUp.result.state === 'measured' && baseline.result.observedWindow.end > followUp.result.observedWindow.start))) fail(`Directional outcome ${outcome.id} requires comparable linked measured records with consistent methodology and chronology.`)
     }
   }
   for (const profile of interpretations) {
@@ -218,7 +218,7 @@ export function parseMeasurementProjection(input: unknown): MeasurementFeaturePr
     else if (planFollowUp.result.state === 'not_measured') { expectedState = 'follow_up_not_measured'; expectedReasons = measurementPlan.readiness.state === 'not_ready' ? measurementPlan.readiness.reasons : [] }
     else if (planFollowUp.comparability.state !== 'comparable') { expectedState = 'follow_up_not_comparable'; expectedReasons = measurementPlan.readiness.state === 'not_ready' ? measurementPlan.readiness.reasons : ['incomparable'] }
     else if (measurementPlan.readiness.state === 'not_ready') { expectedState = 'follow_up_not_ready'; expectedReasons = measurementPlan.readiness.reasons }
-    else if (!recordedMeasurementIds.includes(measurementPlan.baselineMeasurementId) || !recordedMeasurementIds.includes(measurementPlan.followUpMeasurementId)) { expectedState = 'measurements_not_recorded'; expectedReasons = [] }
+    else if (!recordedMeasurementIds.includes(measurementPlan.baselineMeasurementId) || !recordedMeasurementIds.includes(measurementPlan.followUpMeasurementId)) { expectedState = 'measurements_not_recorded'; expectedReasons = ['prepared_measurements_not_yet_recorded'] }
     else { expectedState = 'ready_for_human_assessment'; expectedReasons = [] }
     if (readiness.state !== expectedState || !sameStrings(readiness.reasons, expectedReasons)) fail('Measurement cycle readiness contradicts the supplied Release 0.16 plan and measurement state.')
   }
