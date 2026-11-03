@@ -334,6 +334,7 @@ export function App() {
           <Reports
             projection={currentReport?.value}
             error={result.error ?? currentReport?.error}
+            retrySnapshot={result.error ? () => { setResult({}); setRetry((value) => value + 1) } : undefined}
             fixture={reportCase}
             chooseFixture={chooseReportCase}
           />

@@ -22,11 +22,12 @@ function downloadJson(report: ReportFeatureProjection['report']) {
   URL.revokeObjectURL(url)
 }
 
-export function Reports({ projection, error, fixture, chooseFixture }: {
+export function Reports({ projection, error, fixture, chooseFixture, retrySnapshot }: {
   projection?: ReportFeatureProjection
   error?: string
   fixture: ReportFixtureId
   chooseFixture: (id: ReportFixtureId) => void
+  retrySnapshot?: () => void
 }) {
   const selectId = useId()
   const report = projection?.report
@@ -125,6 +126,7 @@ export function Reports({ projection, error, fixture, chooseFixture }: {
       <h3>{error ? 'Reports unavailable' : 'Checking report projection'}</h3>
       <p>{error ?? 'Validating report identity, source binding, and customer-safe focus…'}</p>
       <p>No report body, internal appendix, download, or print action is available without a checked current projection.</p>
+      {error && retrySnapshot && <button type="button" className="secondary" onClick={retrySnapshot}>Retry snapshot</button>}
     </div>}
   </section>
 }
