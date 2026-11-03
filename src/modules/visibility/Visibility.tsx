@@ -28,7 +28,7 @@ export function Visibility({
   review: (id: string) => void
 }) {
   const selectId = useId()
-  return <section className="visibility-view" aria-busy={projection === undefined}>
+  return <section className="visibility-view" aria-busy={projection === undefined && error === undefined}>
     <div className="visibility-heading">
       <div><p className="eyebrow">Source-universe first</p><h2>Visibility evidence</h2>
         <p>Organic Search and provider-native AI observations remain separate evidence universes.</p></div>

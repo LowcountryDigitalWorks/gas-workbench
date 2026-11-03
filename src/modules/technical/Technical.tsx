@@ -13,7 +13,7 @@ function Linked({ evidence, attention, moduleId, inspect, review }: { evidence?:
 }
 export function Technical({ projection, error, shell, fixture, chooseFixture, inspect, review }: { projection?: TechnicalProjection; error?: string; shell: WorkbenchProjection; fixture: TechnicalFixtureId; chooseFixture: (id: TechnicalFixtureId) => void; inspect: (moduleId: string) => void; review: (id: string) => void }) {
   const id = useId()
-  return <section className="technical-view" aria-busy={projection === undefined}>
+  return <section className="technical-view" aria-busy={projection === undefined && error === undefined}>
     <div className="technical-heading"><div><p className="eyebrow">Accepted evidence, source by source</p><h2>Technical evidence</h2><p>Supplied WQT observations, compatible change evidence, and Discovery diagnostics stay bounded to their source and coverage.</p></div><label htmlFor={id}>Technical walkthrough</label><select id={id} value={fixture} onChange={(e) => chooseFixture(e.target.value as TechnicalFixtureId)}>{technicalFixtureIds.map((item) => <option key={item} value={item}>{names[item]}</option>)}</select></div>
     {projection ? <>
     <p className="technical-schema">Checked feature contract <code>{projection.schemaVersion}</code> / minor {projection.schemaMinorVersion}. Global shell projection remains minor 0.</p>

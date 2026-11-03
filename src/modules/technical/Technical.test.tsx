@@ -51,6 +51,7 @@ describe('Technical operator slice', () => {
     expect(pending).not.toContain('observation:siteone-title')
     const failed = renderToStaticMarkup(<Technical shell={shell} fixture="changed" error="Source mismatch" chooseFixture={noop} inspect={noop} review={noop}/>)
     expect(failed).toContain('role="alert"')
+    expect(failed).toContain('aria-busy="false"')
     expect(failed).toContain('Source mismatch')
   })
 })

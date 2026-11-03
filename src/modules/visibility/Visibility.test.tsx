@@ -41,6 +41,7 @@ describe('Visibility presentation', () => {
     expect(pending).not.toContain('synthetic:search-performance:text:october')
     const failed = renderToStaticMarkup(<Visibility shell={shell} fixture="source-discontinuity" error="Snapshot mismatch" chooseFixture={noop} inspect={noop} review={noop} />)
     expect(failed).toContain('role="alert"')
+    expect(failed).toContain('aria-busy="false"')
     expect(failed).toContain('Snapshot mismatch')
   })
 })
