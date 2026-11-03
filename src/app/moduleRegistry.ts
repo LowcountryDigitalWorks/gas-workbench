@@ -42,6 +42,11 @@ export const registeredModules = [
     label: 'Measure / Outcomes',
     description: 'Measurement readiness, interpretation limits, and human outcomes.',
   },
+  {
+    id: 'reports',
+    label: 'Reports',
+    description: 'Customer-safe report preview and deterministic export.',
+  },
 ] as const satisfies readonly WorkbenchModuleDefinition[]
 
 export function validateModuleRegistry(
