@@ -1,6 +1,6 @@
 # Workbench ↔ G.A.S. Engine Boundary
 
-Status: first-milestone boundary for `WB-ENGINE-001`.
+Status: accepted checked shell boundary plus separately checked feature projections through Workbench PR #27; this document retains first-milestone source/fixture provenance.
 
 ## Selected initial seam
 
@@ -91,7 +91,15 @@ The canonical decoder fails visibly when:
 
 There is no best-effort version coercion.
 
-## Future live transport
+## Accepted feature-specific projection boundaries
+
+The shell projection remains `ldw.gas-workbench-projection.v1` minor 0. Current accepted checked feature projections reside separately in `visibility-projection.ts`, `technical-projection.ts`, `measurement-projection.ts`, `report-projection.ts` and `portfolio-projection.ts`, each with synthetic/public-safe fixtures and focused decoder tests. Their consumers are registered Workbench views, **not** evidence sources or new engine semantic authorities.
+
+The checked feature boundaries enforce reviewed payload shape, versioning, shell/workspace/source binding and applicable referential integrity. They do not recompute upstream search/AI, discovery, decision, measurement interpretation, allowed claim or portfolio-readiness semantics.
+
+`discover` is reserved in the module registry but is not yet a registered/implemented UI destination. No feature boundary in this directory authorizes provider access, live transport, customer data, runtime AI or a new engine release.
+
+## Feature-specific examples and future live transport
 
 ### Visibility feature projection
 
