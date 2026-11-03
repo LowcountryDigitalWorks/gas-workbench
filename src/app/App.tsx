@@ -1,4 +1,5 @@
 import { registeredModules } from './moduleRegistry'
+import { currentFeatureLoad, type FeatureLoad } from './featureLoad'
 import { useEffect, useRef, useState } from 'react'
 import type { WorkbenchProjection } from '../engine/projection'
 import { Badge, Facts, Icon } from '../design-system/primitives'
@@ -78,9 +79,9 @@ export function App() {
   }>({})
   const [retry, setRetry] = useState(0)
   const [visibilityCase, setVisibilityCase] = useState<VisibilityFixtureId>('comparable-search')
-  const [visibility, setVisibility] = useState<{ value?: VisibilityFeatureProjection; error?: string }>({})
+  const [visibility, setVisibility] = useState<FeatureLoad<VisibilityFeatureProjection, VisibilityFixtureId, WorkbenchProjection>>()
   const [technicalCase, setTechnicalCase] = useState<TechnicalFixtureId>('ready')
-  const [technical, setTechnical] = useState<{ value?: TechnicalProjection; error?: string }>({})
+  const [technical, setTechnical] = useState<FeatureLoad<TechnicalProjection, TechnicalFixtureId, WorkbenchProjection>>()
   const [measurementCase, setMeasurementCase] = useState<MeasurementFixtureId>('follow-up-not-due')
   const [measurement, setMeasurement] = useState<{ value?: MeasurementFeatureProjection; error?: string }>({})
   const [reportCase, setReportCase] = useState<ReportFixtureId>('focused-evidence')
@@ -112,20 +113,22 @@ export function App() {
     }
   }, [fixture, retry])
   const projection = result.projection
+  const currentVisibility = currentFeatureLoad(visibility, visibilityCase, projection)
+  const currentTechnical = currentFeatureLoad(technical, technicalCase, projection)
   useEffect(() => {
     if (!projection) return
     let active = true
     loadVisibilityFixture(visibilityCase, projection).then((value) => {
-      if (active) setVisibility({ value })
+      if (active) setVisibility({ fixture: visibilityCase, source: projection, value })
     }).catch((error) => {
-      if (active) setVisibility({ error: error instanceof Error ? error.message : 'Visibility projection unavailable.' })
+      if (active) setVisibility({ fixture: visibilityCase, source: projection, error: error instanceof Error ? error.message : 'Visibility projection unavailable.' })
     })
     return () => { active = false }
   }, [projection, visibilityCase])
   useEffect(() => {
     if (!projection) return
     let active = true
-    loadTechnicalFixture(technicalCase, projection).then((value) => { if (active) setTechnical({ value }) }).catch((error) => { if (active) setTechnical({ error: error instanceof Error ? error.message : 'Technical projection unavailable.' }) })
+    loadTechnicalFixture(technicalCase, projection).then((value) => { if (active) setTechnical({ fixture: technicalCase, source: projection, value }) }).catch((error) => { if (active) setTechnical({ fixture: technicalCase, source: projection, error: error instanceof Error ? error.message : 'Technical projection unavailable.' }) })
     return () => { active = false }
   }, [projection, technicalCase])
   useEffect(() => {
@@ -155,14 +158,14 @@ export function App() {
       setResult({})
       setSelected(undefined)
       setAttention(undefined)
-      setTechnical({})
+      setTechnical(undefined)
     }
     if (next === 'visibility' && fixture !== 'visibility-review') {
       setFixture('visibility-review')
       setResult({})
       setSelected(undefined)
       setAttention(undefined)
-      setVisibility({})
+      setVisibility(undefined)
     }
     if (next === 'measurement' && fixture !== 'human-review') {
       setFixture('human-review')
@@ -366,20 +369,26 @@ export function App() {
               />
             )}
             {view === 'visibility' && (
-              visibility.value ? <Visibility
-                projection={visibility.value}
+              <Visibility
+                projection={currentVisibility?.value}
+                error={currentVisibility?.error}
                 shell={projection}
                 fixture={visibilityCase}
-                chooseFixture={setVisibilityCase}
+                chooseFixture={(id) => { setVisibilityCase(id); setVisibility(undefined) }}
                 inspect={(moduleId) => inspect(moduleId)}
                 review={(id) => { setAttention(id); navigate('attention') }}
-              /> : <section className="error-state" role={visibility.error ? 'alert' : 'status'}>
-                <h2>{visibility.error ? 'Visibility unavailable' : 'Checking Visibility projection'}</h2>
-                <p>{visibility.error ?? 'Validating source and workspace identity…'}</p>
-              </section>
+              />
             )}
             {view === 'technical' && (
-              technical.value ? <Technical projection={technical.value} shell={projection} fixture={technicalCase} chooseFixture={setTechnicalCase} inspect={(moduleId) => inspect(moduleId)} review={(id) => { setAttention(id); navigate('attention') }} /> : <section className="error-state" role={technical.error ? 'alert' : 'status'}><h2>{technical.error ? 'Technical unavailable' : 'Checking Technical projection'}</h2><p>{technical.error ?? 'Validating source and workspace identity…'}</p></section>
+              <Technical
+                projection={currentTechnical?.value}
+                error={currentTechnical?.error}
+                shell={projection}
+                fixture={technicalCase}
+                chooseFixture={(id) => { setTechnicalCase(id); setTechnical(undefined) }}
+                inspect={(moduleId) => inspect(moduleId)}
+                review={(id) => { setAttention(id); navigate('attention') }}
+              />
             )}
             {view === 'measurement' && (
               measurement.value ? <Measurement projection={measurement.value} fixture={measurementCase} chooseFixture={(id) => { setMeasurementCase(id); setMeasurement({}) }} /> : <section className="error-state" role={measurement.error ? 'alert' : 'status'}><h2>{measurement.error ? 'Measure / Outcomes unavailable' : 'Checking measurement projection'}</h2><p>{measurement.error ?? 'Validating measurement-cycle identity and supplied semantics…'}</p></section>
