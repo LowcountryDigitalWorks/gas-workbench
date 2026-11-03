@@ -76,6 +76,11 @@ describe('Report feature projection boundary', () => {
     const wrongLabel = clone(reportFixtureData['focused-evidence']) as unknown as { report: { focusItems: { label: string }[] } }
     wrongLabel.report.focusItems[0].label = 'https://other.example/not-the-selected-evidence'
     await expect(decodeReportProjection(wrongLabel, humanShell)).rejects.toThrow('customer-safe label')
+    const ambiguousShell = clone(humanShell) as unknown as { workspace: { attention: { id: string }[] } }
+    const duplicateAttention = clone((ambiguousShell.workspace.attention as unknown as Record<string, unknown>[])[0])
+    duplicateAttention.id = 'attention:ambiguous-duplicate'
+    ;(ambiguousShell.workspace.attention as unknown as Record<string, unknown>[]).push(duplicateAttention)
+    await expect(decodeReportProjection(reportFixtureData['focused-evidence'], ambiguousShell as never)).rejects.toThrow('ambiguous across multiple current Attention identities')
   })
 
   it('binds decision readiness and recorded measurement/outcome counts to the matched shell', async () => {
@@ -133,6 +138,12 @@ describe('Report feature projection boundary', () => {
     const tampered = clone(reportFixtureData['focused-evidence']) as unknown as { report: { executiveSummary: string } }
     tampered.report.executiveSummary = 'Tampered after report identity was created.'
     await expect(decodeReportProjection(tampered, humanShell)).rejects.toThrow('canonical content hash')
+    const malformedString = clone(reportFixtureData['focused-evidence']) as unknown as { report: { executiveSummary: string } }
+    malformedString.report.executiveSummary = String.fromCharCode(0xd800)
+    await expect(decodeReportProjection(malformedString, humanShell)).rejects.toThrow('string outside accepted canonical JSON bounds')
+    const overlongString = clone(reportFixtureData['focused-evidence']) as unknown as { report: { executiveSummary: string } }
+    overlongString.report.executiveSummary = 'x'.repeat(16_385)
+    await expect(decodeReportProjection(overlongString, humanShell)).rejects.toThrow('string outside accepted canonical JSON bounds')
   })
 
   it('preserves supplied observed-change text instead of deriving metric claims', () => {

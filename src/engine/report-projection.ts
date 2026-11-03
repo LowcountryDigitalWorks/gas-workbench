@@ -108,16 +108,48 @@ function reportIdentityMaterial(report: ReportFeatureProjection['report']): unkn
     internalAppendix: report.internalAppendix ?? null,
   }
 }
-function canonicalJson(value: unknown): string {
-  if (value === null) return 'null'
-  if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value)
-  if (typeof value === 'number' && Number.isFinite(value) && !Object.is(value, -0)) return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
-  if (typeof value !== 'object') fail('Report identity material is not canonical JSON data.')
-  const record = value as Record<string, unknown>
-  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(',')}}`
+function wellFormedUtf16(text: string): boolean {
+  for (let index = 0; index < text.length; index += 1) {
+    const unit = text.charCodeAt(index)
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = text.charCodeAt(index + 1)
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false
+      index += 1
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return false
+  }
+  return true
 }
-async function expectedReportId(report: ReportFeatureProjection['report']): Promise<string> {
+function canonicalJson(value: unknown): string {
+  let valueCount = 0
+  const write = (current: unknown, depth: number): string => {
+    valueCount += 1
+    if (depth > 32) fail('Release 0.17 report identity material exceeds the accepted canonical JSON depth bound.')
+    if (valueCount > 10_000) fail('Release 0.17 report identity material exceeds the accepted canonical JSON value-count bound.')
+    if (current === null) return 'null'
+    if (typeof current === 'string') {
+      if (current.length > 16_384 || !wellFormedUtf16(current)) fail('Release 0.17 report identity material contains a string outside accepted canonical JSON bounds.')
+      return JSON.stringify(current)
+    }
+    if (typeof current === 'boolean') return JSON.stringify(current)
+    if (typeof current === 'number') {
+      if (!Number.isFinite(current) || Object.is(current, -0)) fail('Release 0.17 report identity material contains a non-canonical number.')
+      return JSON.stringify(current)
+    }
+    if (Array.isArray(current)) {
+      if (current.length > 1_000) fail('Release 0.17 report identity material exceeds the accepted canonical JSON container bound.')
+      return `[${current.map((item) => write(item, depth + 1)).join(',')}]`
+    }
+    if (typeof current !== 'object') fail('Report identity material is not canonical JSON data.')
+    const record = current as Record<string, unknown>
+    const keys = Object.keys(record).sort()
+    if (keys.length > 1_000) fail('Release 0.17 report identity material exceeds the accepted canonical JSON container bound.')
+    return `{${keys.map((key) => {
+      if (key.length > 16_384 || !wellFormedUtf16(key)) fail('Release 0.17 report identity material contains a key outside accepted canonical JSON bounds.')
+      return `${JSON.stringify(key)}:${write(record[key], depth + 1)}`
+    }).join(',')}}`
+  }
+  return write(value, 0)
+}async function expectedReportId(report: ReportFeatureProjection['report']): Promise<string> {
   const bytes = new TextEncoder().encode(canonicalJson(reportIdentityMaterial(report)))
   if (bytes.byteLength > 65_536) fail('Release 0.17 report identity material exceeds the accepted canonical JSON bound.')
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
@@ -248,10 +280,18 @@ export async function decodeReportProjection(input: unknown, shell: WorkbenchPro
     if (!shellEntry || shellEntry.readiness !== note.readiness || !sameStrings(shellEntry.reasons, note.reasons)) fail(`Report source note ${note.moduleId}/${note.release} is stale or mismatched.`)
   }
   const availableAttention = [...workspace.attention]
-  for (const focus of report.focusItems) {
-    const index = availableAttention.findIndex((attention) => focusMatchesAttention(focus, attention))
-    if (index < 0) fail('Report focus item does not resolve to current supplied Attention evidence including its customer-safe label.')
-    availableAttention.splice(index, 1)
+  for (const [focusIndex, focus] of report.focusItems.entries()) {
+    const matches = availableAttention.map((attention, index) => ({ attention, index })).filter(({ attention }) => focusMatchesAttention(focus, attention))
+    if (matches.length === 0) fail('Report focus item does not resolve to current supplied Attention evidence including its customer-safe label.')
+    let selected = matches[0]!
+    if (matches.length > 1) {
+      const selectedAttentionId = report.internalAppendix?.selectedAttentionIds[focusIndex]
+      if (selectedAttentionId === undefined) fail('Report focus item is ambiguous across multiple current Attention identities.')
+      const disambiguated = matches.find(({ attention }) => attention.id === selectedAttentionId)
+      if (disambiguated === undefined) fail('Internal appendix Attention identity does not disambiguate the matching customer-safe focus item.')
+      selected = disambiguated
+    }
+    availableAttention.splice(selected.index, 1)
   }
   validateDecisionBinding(report, workspace)
   if (report.internalAppendix) {
