@@ -8,6 +8,7 @@ export const workbenchModuleIds = [
   'decisions',
   'measurement',
   'reports',
+  'portfolio',
 ] as const
 
 export type WorkbenchModuleId = (typeof workbenchModuleIds)[number]
@@ -46,6 +47,11 @@ export const registeredModules = [
     id: 'reports',
     label: 'Reports',
     description: 'Customer-safe report preview and deterministic export.',
+  },
+  {
+    id: 'portfolio',
+    label: 'Sites / Portfolio',
+    description: 'LDW-internal multi-engagement operational state.',
   },
 ] as const satisfies readonly WorkbenchModuleDefinition[]
 
