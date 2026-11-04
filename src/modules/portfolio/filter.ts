@@ -10,6 +10,20 @@ export const PORTFOLIO_FILTERS = [
 
 export type PortfolioFilter = typeof PORTFOLIO_FILTERS[number]['id']
 
+/** One atomic presentation state: a filter change drops the prior tenant choice. */
+export interface PortfolioFilterState {
+  readonly filter: PortfolioFilter
+  readonly selection?: PortfolioSelection
+}
+
+/** Preserve an explicit choice only when the operator did not change filters. */
+export function changePortfolioFilter(
+  state: PortfolioFilterState,
+  nextFilter: PortfolioFilter,
+): PortfolioFilterState {
+  return state.filter === nextFilter ? state : { filter: nextFilter }
+}
+
 const sourceExceptions = new Set<string>([
   'source_not_supplied', 'source_unavailable', 'source_unsupported',
   'source_freshness_unknown', 'source_stale',
