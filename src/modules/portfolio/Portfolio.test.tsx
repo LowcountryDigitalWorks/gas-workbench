@@ -39,6 +39,19 @@ describe('Portfolio', () => {
     expect(html).toContain('operational metadata only')
   })
 
+  it('renders factual triage controls without selecting or ranking a tenant by default', () => {
+    const html = renderToStaticMarkup(<Portfolio projection={parsePortfolioProjection(mixedPortfolioFixture)}/>)
+    expect(html).toContain('Filter engagements by accepted facts')
+    expect(html).toContain('No current run')
+    expect(html).toContain('Attention present')
+    expect(html).toContain('Source exceptions')
+    expect(html).toContain('Showing 3 of 3 engagements')
+    expect(html).toContain('Filters reflect accepted operational facts, not ranking or access authority')
+    expect(html).toContain('aria-pressed="true"')
+    expect(html).toContain('Select an engagement')
+    expect(html).not.toContain('tenant-alpha')
+  })
+
   it('escapes inventory labels as text', () => {
     const fixture = clone(mixedPortfolioFixture) as unknown as MutableFixture
     fixture.portfolio.engagements[0].label = '<script>alert(1)</script> Alpha'
