@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Badge, Facts, Notice } from '../../design-system/primitives'
 import { timestamp } from '../../design-system/format'
 import type { PortfolioEngagement, PortfolioFeatureProjection } from '../../engine/portfolio-projection'
-import { choosePortfolioEngagement, type PortfolioSelection } from './selection'
-import { filterPortfolioEngagements, PORTFOLIO_FILTERS, resolveVisiblePortfolioEngagement, type PortfolioFilter } from './filter'
+import { choosePortfolioEngagement } from './selection'
+import { changePortfolioFilter, filterPortfolioEngagements, PORTFOLIO_FILTERS, resolveVisiblePortfolioEngagement, type PortfolioFilterState } from './filter'
 
 function words(value: string) { return value.replaceAll('_', ' ') }
 function countRows(rows: readonly Readonly<{ state: string; count: number }>[]) { return rows.filter((row) => row.count > 0) }
@@ -72,8 +72,8 @@ export function Portfolio({ projection }: { projection: PortfolioFeatureProjecti
 
 function PortfolioSnapshot({ projection }: { projection: PortfolioFeatureProjection }) {
   const portfolio = projection.portfolio
-  const [selection, setSelection] = useState<PortfolioSelection>()
-  const [filter, setFilter] = useState<PortfolioFilter>('all')
+  const [filterState, setFilterState] = useState<PortfolioFilterState>({ filter: 'all' })
+  const { selection, filter } = filterState
   const visibleEngagements = filterPortfolioEngagements(portfolio.engagements, filter)
   const selected = resolveVisiblePortfolioEngagement(projection, selection, filter)
   const summary = portfolio.summary
@@ -95,15 +95,13 @@ function PortfolioSnapshot({ projection }: { projection: PortfolioFeatureProject
       <section className="portfolio-list" aria-label="Trusted engagements">
         <div className="portfolio-section-heading"><div><p className="eyebrow">Trusted inventory</p><h3>Engagements</h3></div><Badge>{portfolio.engagements.length}</Badge></div>
         <div className="portfolio-filters" role="group" aria-label="Filter engagements by accepted facts">
-          {PORTFOLIO_FILTERS.map((option) => <button key={option.id} type="button" className="portfolio-filter" aria-pressed={filter === option.id} onClick={() => {
-            if (filter !== option.id) { setSelection(undefined); setFilter(option.id) }
-          }}>
+          {PORTFOLIO_FILTERS.map((option) => <button key={option.id} type="button" className="portfolio-filter" aria-pressed={filter === option.id} onClick={() => setFilterState((current) => changePortfolioFilter(current, option.id))}>
             {option.label}<span aria-hidden="true">{filterPortfolioEngagements(portfolio.engagements, option.id).length}</span>
           </button>)}
         </div>
         <p className="portfolio-filter-note" role="status">Showing {visibleEngagements.length} of {portfolio.engagements.length} engagements. Filters reflect accepted operational facts, not ranking or access authority.</p>
         {visibleEngagements.length === 0 ? <Notice>No engagements match this factual filter. Choose another filter; no tenant is selected automatically.</Notice> : null}
-        {visibleEngagements.map((engagement) => <button type="button" className="portfolio-engagement" aria-pressed={engagement.engagementId === selected?.engagementId} key={engagement.engagementId} onClick={() => setSelection(choosePortfolioEngagement(projection, engagement.engagementId))}>
+        {visibleEngagements.map((engagement) => <button type="button" className="portfolio-engagement" aria-pressed={engagement.engagementId === selected?.engagementId} key={engagement.engagementId} onClick={() => setFilterState((current) => ({ ...current, selection: choosePortfolioEngagement(projection, engagement.engagementId) }))}>
           <span><strong>{engagement.label}</strong><small>{engagement.trustedTarget}</small></span>
           <span className="portfolio-engagement-meta"><Badge>{words(engagement.currentRunState)}</Badge><small>{engagement.exceptions.length} factual exception{engagement.exceptions.length === 1 ? '' : 's'}</small></span>
         </button>)}
