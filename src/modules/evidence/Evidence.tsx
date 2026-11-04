@@ -79,7 +79,7 @@ export function Evidence({
                     className="source-row"
                     aria-pressed={selected === source.moduleId}
                     aria-controls="source-inspector"
-                    onClick={(e) => {
+                    onClick={() => {
                       select(source.moduleId)
                       requestAnimationFrame(() =>
                         detailHeading.current?.focus(),
@@ -132,7 +132,7 @@ export function Evidence({
                       className="source-row"
                       aria-pressed={selected === source.moduleId}
                       aria-controls="source-inspector"
-                      onClick={(e) => {
+                      onClick={() => {
                         select(source.moduleId)
                         requestAnimationFrame(() =>
                           detailHeading.current?.focus(),
