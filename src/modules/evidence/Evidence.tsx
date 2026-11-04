@@ -3,6 +3,7 @@ import type { WorkbenchProjection } from '../../engine/projection'
 import { Badge, Facts, Icon, Notice } from '../../design-system/primitives'
 import { moduleName, providerName, readable } from '../../design-system/format'
 import { filterSources, partitionSourceLedger, safeHttpUrl } from './presentation'
+import { selectEvidenceReturnFocusTarget } from './focus'
 
 export function Evidence({
   projection,
@@ -17,7 +18,6 @@ export function Evidence({
 }) {
   const [query, setQuery] = useState('')
   const [state, setState] = useState('all')
-  const opener = useRef<HTMLButtonElement | null>(null)
   const detailHeading = useRef<HTMLHeadingElement>(null)
   const w = projection.workspace
   const filtered = filterSources(w.readiness, w.sourceManifest, query, state)
@@ -29,11 +29,11 @@ export function Evidence({
   const evidence = w.evidenceRows.filter((row) => row.moduleId === selected)
   const linked = w.attention.filter((row) => row.moduleId === selected)
   function close() {
-    const target = opener.current?.isConnected
-      ? opener.current
-      : (document.querySelector<HTMLButtonElement>(
-          '.source-row[aria-pressed="true"]',
-        ) ?? document.querySelector<HTMLInputElement>('.filters input'))
+    // A selected row inside closed <details> remains connected but cannot receive focus.
+    const target = selectEvidenceReturnFocusTarget(
+      document.querySelector<HTMLButtonElement>('.source-row[aria-pressed="true"]'),
+      document.querySelector<HTMLInputElement>('.filters input'),
+    )
     select(undefined)
     requestAnimationFrame(() => target?.focus())
   }
@@ -80,7 +80,6 @@ export function Evidence({
                     aria-pressed={selected === source.moduleId}
                     aria-controls="source-inspector"
                     onClick={(e) => {
-                      opener.current = e.currentTarget
                       select(source.moduleId)
                       requestAnimationFrame(() =>
                         detailHeading.current?.focus(),
@@ -134,7 +133,6 @@ export function Evidence({
                       aria-pressed={selected === source.moduleId}
                       aria-controls="source-inspector"
                       onClick={(e) => {
-                        opener.current = e.currentTarget
                         select(source.moduleId)
                         requestAnimationFrame(() =>
                           detailHeading.current?.focus(),
