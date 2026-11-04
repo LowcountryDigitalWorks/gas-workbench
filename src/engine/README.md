@@ -1,6 +1,6 @@
 # Workbench ↔ G.A.S. Engine Boundary
 
-Status: accepted checked shell boundary plus independently checked feature projections and pure selected-portfolio/workspace preflight through Workbench PR #39; historical first-milestone source/fixture provenance remains below.
+Status: accepted checked shell boundary plus independently checked feature projections and pure selected-portfolio/workspace preflight through Workbench PR #45; historical first-milestone source/fixture provenance remains below.
 
 ## Selected initial seam
 

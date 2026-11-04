@@ -39,3 +39,25 @@ export function safeHttpUrl(value: string): string | undefined {
     return undefined
   }
 }
+
+/**
+ * Presentation-only split: default All groups non-supplied modules instead of
+ * listing them as if they were visible. Search matching stays authoritative in
+ * filterSources; blank/whitespace-only queries are equivalent.
+ */
+export function partitionSourceLedger(
+  filtered: readonly WorkbenchReadinessEntry[],
+  query: string,
+  state: string,
+): Readonly<{
+  listed: readonly WorkbenchReadinessEntry[]
+  groupedNotSupplied: readonly WorkbenchReadinessEntry[]
+}> {
+  if (query.trim() !== '' || state !== 'all') {
+    return { listed: filtered, groupedNotSupplied: [] }
+  }
+  return {
+    listed: filtered.filter((entry) => entry.state !== 'not_supplied'),
+    groupedNotSupplied: filtered.filter((entry) => entry.state === 'not_supplied'),
+  }
+}

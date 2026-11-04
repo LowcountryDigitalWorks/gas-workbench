@@ -7,7 +7,7 @@ import { Evidence } from './evidence/Evidence'
 import { Attention } from './attention/Attention'
 import { DecisionDraft } from './decisions/DecisionDraft'
 import { createReviewNote } from './decisions/handoff'
-import { filterSources, safeHttpUrl } from './evidence/presentation'
+import { filterSources, partitionSourceLedger, safeHttpUrl } from './evidence/presentation'
 const noop = () => {}
 
 describe('operator slice — supplied meaning and human authority', () => {
@@ -153,6 +153,50 @@ describe('operator slice — supplied meaning and human authority', () => {
     ).toHaveLength(0)
     expect(JSON.stringify(p)).toBe(before)
   })
+  it('reports default ledger rows truthfully while grouping missing evidence separately', async () => {
+    const projection = await loadFixture('limited')
+    const before = JSON.stringify(projection)
+    const matched = filterSources(
+      projection.workspace.readiness, projection.workspace.sourceManifest, '', 'all',
+    )
+    const { listed, groupedNotSupplied } = partitionSourceLedger(matched, '', 'all')
+    expect(groupedNotSupplied).toHaveLength(6)
+    expect(listed.every((entry) => entry.state !== 'not_supplied')).toBe(true)
+    expect(listed.length + groupedNotSupplied.length).toBe(matched.length)
+    const html = renderToStaticMarkup(
+      <Evidence projection={projection} select={noop} review={noop} />,
+    )
+    expect(html).toContain(`${listed.length} of ${projection.workspace.readiness.length} modules listed; 6 not supplied grouped below`)
+    expect(html).toContain('Not supplied (6 modules)')
+    expect(html).not.toContain('modules shown')
+    expect(JSON.stringify(projection)).toBe(before)
+  })
+
+  it('treats whitespace-only search as blank while explicit filters and queries list their matches', async () => {
+    const projection = await loadFixture('limited')
+    const { readiness, sourceManifest } = projection.workspace
+    const whitespace = partitionSourceLedger(
+      filterSources(readiness, sourceManifest, '   ', 'all'), '   ', 'all',
+    )
+    expect(whitespace.groupedNotSupplied).toHaveLength(6)
+    expect(whitespace.listed.every((entry) => entry.state !== 'not_supplied')).toBe(true)
+    const explicit = partitionSourceLedger(
+      filterSources(readiness, sourceManifest, '', 'not_supplied'), '', 'not_supplied',
+    )
+    expect(explicit.groupedNotSupplied).toHaveLength(0)
+    expect(explicit.listed).toHaveLength(6)
+    const queried = partitionSourceLedger(
+      filterSources(readiness, sourceManifest, 'ai_visibility', 'all'), 'ai_visibility', 'all',
+    )
+    expect(queried.groupedNotSupplied).toHaveLength(0)
+    expect(queried.listed.map((entry) => entry.moduleId)).toEqual(['ai_visibility'])
+    const empty = partitionSourceLedger(
+      filterSources(readiness, sourceManifest, 'no-such-source-123', 'all'),
+      'no-such-source-123', 'all',
+    )
+    expect(empty).toEqual({ listed: [], groupedNotSupplied: [] })
+  })
+
   it('displays a malformed target as escaped text instead of throwing during render', () => {
     expect(siteName('not-a-url')).toBe('not-a-url')
     expect(siteName('https://harbor-demo.example/path')).toBe(
