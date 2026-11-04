@@ -1,6 +1,6 @@
 # G.A.S. Workbench Architecture
 
-**Status:** Accepted synthetic/public-safe modular-monolith product surface through [PR #27](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/27). Live GitHub/issue authority overrides this snapshot. The app is not a deployed provider-connected service.
+**Status:** Accepted synthetic/public-safe modular-monolith operator surface through [PR #39](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/39). Live GitHub, source and current issue/PR state override this historical summary. The app is not a deployed provider-connected or customer-authorized service.
 
 ## Purpose and repository boundary
 
@@ -46,7 +46,7 @@ The canonical shell decoder is `decodeWorkbenchProjection(...)` in `src/engine/p
 
 Feature payloads must be checked against the accepted shell's workspace/tenant/site/scope/target and relevant evidence identity. Decoders may enforce schema/vocabulary/relationship integrity; they must not regenerate Search Analytics, AI comparison, severity, recommendation priority, measurement interpretation or claim policy from UI heuristics. The global shell contract remains unchanged unless a later separately reviewed revision explicitly changes it.
 
-The post-Portfolio UX integrity fix, [PR #27](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/27), prevents feature selectors from displaying previously selected cases' stale evidence/error state and preserves accessible status/alert behavior.
+The post-Portfolio UX integrity fix, [PR #27](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/27), prevents feature selectors from displaying previously selected cases' stale evidence/error state and preserves accessible status/alert behavior. Later [PR #37](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/37) adds non-ranked factual Portfolio filters with atomic selection clearing. Accepted [PR #39](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/39) composes explicit snapshot-bound selection with the canonical portfolio-to-workspace preflight, returning `no_explicit_selection` or `selection_expired` before inspecting a workspace. This remains an **unwired pure local helper**, not a provider, user-authorization or runtime feature.
 
 ## Interaction and safety invariants
 
