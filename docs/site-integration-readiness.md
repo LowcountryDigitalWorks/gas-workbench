@@ -17,6 +17,7 @@ No current run and no supplied workspace are not healthy, successful, empty or z
 Workbench #34 adds **explicit** site selection in Sites / Portfolio: no tenant details appear before the operator selects one trusted engagement. The selection is bound to the portfolio ID and the exact tenant/site/revision/target/current-run/workspace identity of that engagement. If the supplied inventory identity changes, or the selected entry disappears or is replaced, the selection becomes invalid and the view displays a neutral choose-again state; it never renders the first *different* tenant as a fallback. A no-current-run entry can be deliberately inspected without being treated as healthy or as zero evidence.
 
 This is a presentation-level guard over existing synthetic Release 0.19 inputs, **not** authorization to change tenants, request customer data, fetch an accepted workspace, or mint a principal. A future real authenticated runtime must separately check user grants on every read and export, reject stale requests/responses, and not rely on this client-side guard as an access-control boundary.
+
 ## Selection-bound workspace preflight for a future operator handoff
 
 A separate pure presentation helper, `preflightSelectedWorkspaceHandoff` in `src/modules/portfolio/selected-workspace-handoff.ts` (issue #38), composes the already accepted explicit snapshot/engagement selection guard with the already accepted Release 0.19 → Release 0.17 workspace identity preflight. It is **not wired to live transport or navigation**.
