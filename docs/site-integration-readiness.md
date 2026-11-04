@@ -12,6 +12,11 @@ This check does not authenticate tenants, prove that a portfolio was delivered b
 
 No current run and no supplied workspace are not healthy, successful, empty or zero evidence. Attention counts are navigation facts, never priority, severity or business performance.
 
+## Portfolio selection safety before live refresh
+
+Workbench #34 adds **explicit** site selection in Sites / Portfolio: no tenant details appear before the operator selects one trusted engagement. The selection is bound to the portfolio ID and the exact tenant/site/revision/target/current-run/workspace identity of that engagement. If the supplied inventory identity changes, or the selected entry disappears or is replaced, the selection becomes invalid and the view displays a neutral choose-again state; it never renders the first *different* tenant as a fallback. A no-current-run entry can be deliberately inspected without being treated as healthy or as zero evidence.
+
+This is a presentation-level guard over existing synthetic Release 0.19 inputs, **not** authorization to change tenants, request customer data, fetch an accepted workspace, or mint a principal. A future real authenticated runtime must separately check user grants on every read and export, reject stale requests/responses, and not rely on this client-side guard as an access-control boundary.
 ## LDW / ECF / DFD integration candidate questions
 
 These three names are *candidate sites offered by the owner*, not trusted inventory accepted by this proof. Store any actual classified answers in the owning private customer/operational system, not in a public GitHub repo.
