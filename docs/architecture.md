@@ -1,91 +1,68 @@
 # G.A.S. Workbench Architecture
 
-Status: bootstrap candidate under `WB-BOOT-001`.
+**Status:** Accepted synthetic/public-safe modular-monolith product surface through [PR #27](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/27). Live GitHub/issue authority overrides this snapshot. The app is not a deployed provider-connected service.
 
-## Purpose
+## Purpose and repository boundary
 
-G.A.S. Workbench is the product/application layer over the accepted G.A.S. semantic engine. It exists so product UX can evolve continuously without coupling every presentation change to engine release semantics.
+Workbench is the operator interaction layer for accepted G.A.S. intelligence. It presents evidence and limits clearly, supports deliberate human review/decisions and bounded reporting, and avoids a dense generic admin dashboard.
 
-## Repository split
+- **`gas-engine` is authoritative:** evidence meaning, provenance, source readiness, missingness, comparison/comparability, Attention, human recommendation/decision lifecycle, measurement/outcomes and allowed claim ceilings. Accepted semantic baseline: Release 0.24.
+- **`gas-workbench` is presentation authority:** command-center shell, module navigation, interaction, focus/accessibility/reflow, local draft experience and strict presentation of checked supplied projections.
+- **Provider tools and WQT remain upstream:** no direct provider queries, crawler/technical audit clone, rank/keyword collection, generic content generation or provider SDK in feature components.
 
-### `gas-engine`
+The accepted UI does not supply authenticated ingestion, tenant authorization, live storage, hosted deployment or customer account integration. Synthetic/public-safe fixtures are not real provider/customer evidence.
 
-Owns semantic correctness:
-- normalized evidence and provenance;
-- source/missingness semantics;
-- compatibility and comparability;
-- search/AI visibility analysis;
-- attention inputs and deterministic projections;
-- human decision/recommendation lifecycle;
-- baseline/follow-up measurement and outcomes;
-- bounded claim/interpretation ceilings.
+## Accepted source layout
 
-### `gas-workbench`
+| Area | Responsibility |
+| --- | --- |
+| `src/app/` | Shell, module registry, scenario selection, feature-load identity/coherence and error states |
+| `src/design-system/` | Tidal tokens, accessible reusable primitives and formatting |
+| `src/modules/` | Implemented feature components and tests |
+| `src/engine/` | Versioned checked shell/feature projections, referential integrity and synthetic fixtures |
 
-Owns product experience:
-- application shell and navigation;
-- design tokens/components/patterns;
-- module-level information architecture;
-- responsive and accessible interaction;
-- presentation-only workflow/gate state;
-- human-controlled report composition UX;
-- versioned consumption of accepted engine projections.
+Modules stay as feature directories in this one repository. Extract a package only for a proven second consumer or independent release need; extract a repository only for demonstrably different runtime/security ownership.
 
-Workbench does not become another semantic engine.
+## Accepted operator journey and destinations
 
-## Modular-monolith rule
+Registered destinations are **Home, Visibility, Technical, Evidence, Attention, Decision, Measure / Outcomes, Reports, and Sites / Portfolio**. The intended product journey is source/state inspection → unranked Attention → human decision → measurement/interpretation limits → customer-safe reporting, with internal portfolio context when relevant.
 
-The initial product remains one application repository and one deployable frontend boundary.
+- **Visibility** keeps organic search and AI source-native universes separate, including provenance, coverage, comparability and missingness.
+- **Technical** presents accepted WQT/longitudinal/discovery observations without becoming a scanner or auto-remediator.
+- **Measure / Outcomes** distinguishes supplied factual measurement/readiness, accepted interpretation/claim ceilings and separately recorded human outcomes.
+- **Reports** separates customer-safe preview/export from internal evidence and prohibited overclaims.
+- **Sites / Portfolio** is LDW-internal and preserves tenant/site/scope isolation; it does not invent cross-customer ranking or readiness scores.
+- **Discover** is a reserved ID only, not a registered destination. It requires a separately justified evidence-linked operator workflow and exact issue before activation.
 
-Candidate feature directories:
+## Engine projection seam
 
-```text
-src/modules/
-  home/
-  discover/
-  visibility/
-  technical/
-  evidence/
-  attention/
-  decisions/
-  measurement/
-  reports/
-```
+The canonical shell decoder is `decodeWorkbenchProjection(...)` in `src/engine/projection.ts`, consuming the checked `ldw.gas-workbench-projection.v1` minor-0 contract. Feature-specific projection decoders are implemented in:
 
-A directory is not created merely to advertise a future feature. Add a module when it has implemented product behavior.
+- `src/engine/visibility-projection.ts`
+- `src/engine/technical-projection.ts`
+- `src/engine/measurement-projection.ts`
+- `src/engine/report-projection.ts`
+- `src/engine/portfolio-projection.ts`
 
-Promote a module to a package only after a real second consumer or independent versioning need exists. Promote a package to another repository only when runtime, security, deployment, or ownership lifecycle materially diverges.
+Feature payloads must be checked against the accepted shell's workspace/tenant/site/scope/target and relevant evidence identity. Decoders may enforce schema/vocabulary/relationship integrity; they must not regenerate Search Analytics, AI comparison, severity, recommendation priority, measurement interpretation or claim policy from UI heuristics. The global shell contract remains unchanged unless a later separately reviewed revision explicitly changes it.
 
-## Engine boundary
+The post-Portfolio UX integrity fix, [PR #27](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/27), prevents feature selectors from displaying previously selected cases' stale evidence/error state and preserves accessible status/alert behavior.
 
-The first milestone uses deterministic synthetic/public-safe projection fixtures. `WB-ENGINE-001` will select the smallest stable long-term seam among checked JSON projections, generated types/schema artifacts, a deliberate engine client/projection package surface, or later runtime transport.
+## Interaction and safety invariants
 
-Rules regardless of transport:
-- source version is explicit;
-- unsupported/mismatched versions fail visibly;
-- UI derives presentation state from supplied fields only;
-- provider SDKs do not leak into feature modules;
-- no silent coercion of missing/unavailable/zero or incompatible cohorts;
-- no UI-authored semantic IDs, scores, causality, priority, or business value.
+- Never coerce `not_supplied`, `unknown`, incomplete/partial coverage or unavailable evidence into numeric zero or a healthy/no-action verdict.
+- Keep human-authored drafts/outcomes separate from canonical persisted actions; a local draft is not an approval, submission, or recommendation.
+- Preserve source IDs, timestamps, periods, provenance and exact evidence references through drill-down and report composition.
+- Avoid blended provider metrics, universal SEO/visibility scores, automatic causal/business-value claims and silent precision.
+- Maintain keyboard/focus, readable contrast, reflow and long-reference wrapping. The accepted #27 QA covered standard narrow/natively zoomed product layouts; an extra compounded ~187-CSS-pixel experiment was explicitly **not** accepted as a pass.
+- Do not ingest customer/regulated/private data, credentials or provider payloads without separate authority.
 
-## Product and design system
+## Evolution gates
 
-Shared primitives live under `src/design-system`. Feature modules should compose shared primitives rather than fork colors, spacing, statuses, tables, drawers, or workflow patterns.
+The [evergreen roadmap #8](https://github.com/LowcountryDigitalWorks/gas-workbench/issues/8) is a sequence/decision authority, **not** blanket permission to create features. The planned operator module series is implemented; the next product slice should be earned by real operator friction/evidence. Engine research candidates in [gas-engine #31](https://github.com/LowcountryDigitalWorks/gas-engine/issues/31) remain separate research/design gates and do not reserve a new semantic release.
 
-Initial LDW Tidal brand foundation:
-- Estuary Navy `#102A3A`
-- Cypress Teal `#2F766F`
-- Warm Oyster `#F3EFE6`
-- Soft White `#F7F8F6`
+A future accepted live transport or exporter may replace synthetic fixture delivery, provided it preserves exact checked projection and security boundaries. Do **not** add a speculative `gas-runtime`, `gas-connectors`, backend, database, authentication, scheduler, provider integration or production exposure merely to make this demo seem live.
 
-The product should optimize for time-to-confident-no-action and time-to-exact-action. Healthy/no-action states stay quiet. Evidence detail is progressively disclosed.
+Changes to source follow repo [AGENTS.md](../AGENTS.md): a bounded issue, feature branch, deterministic check/audit, hosted CI and fresh independent exact-head review. No author self-acceptance or repository-governance change.
 
-## Runtime boundary
-
-The bootstrap adds no backend, database, auth system, provider connector, scheduler, queue, runtime AI, customer portal, or production deployment.
-
-A future `gas-runtime`/`gas-connectors` boundary is justified only when G.A.S. itself must own materially different network/OAuth/credential/scheduling/security lifecycle. Do not create it speculatively.
-
-## Security and data
-
-Synthetic/public-safe data only in the foundation milestone. Secrets and customer/regulated data must never be committed. Repository settings and production/security changes remain separately gated.
+The historical [Source Atlas design/QA records](design/source-atlas.md) document original decisions and acceptance evidence; their contemporaneous warnings or branch states must not be interpreted as today's product state.
