@@ -1,6 +1,6 @@
 # Workbench ↔ G.A.S. Engine Boundary
 
-Status: accepted checked shell boundary plus separately checked feature projections through Workbench PR #27; this document retains first-milestone source/fixture provenance.
+Status: accepted checked shell boundary plus independently checked feature projections and pure selected-portfolio/workspace preflight through Workbench PR #45; historical first-milestone source/fixture provenance remains below.
 
 ## Selected initial seam
 
@@ -96,6 +96,8 @@ There is no best-effort version coercion.
 The shell projection remains `ldw.gas-workbench-projection.v1` minor 0. Current accepted checked feature projections reside separately in `visibility-projection.ts`, `technical-projection.ts`, `measurement-projection.ts`, `report-projection.ts` and `portfolio-projection.ts`, each with synthetic/public-safe fixtures and focused decoder tests. Their consumers are registered Workbench views, **not** evidence sources or new engine semantic authorities.
 
 The checked feature boundaries enforce reviewed payload shape, versioning, shell/workspace/source binding and applicable referential integrity. They do not recompute upstream search/AI, discovery, decision, measurement interpretation, allowed claim or portfolio-readiness semantics.
+
+Accepted Portfolio composition remains deliberately layered: the checked Release 0.19 inventory decoder and explicit snapshot-bound selection guard (`src/modules/portfolio/selection.ts`) resolve one engagement; `src/modules/portfolio/selected-workspace-handoff.ts` first refuses missing/stale selection and only then delegates to the canonical Release 0.19 → 0.17 identity preflight. This pure local helper is not activated by navigation, does not fetch provider/customer evidence, and does not authenticate tenants or grant runtime/site read access.
 
 `discover` is reserved in the module registry but is not yet a registered/implemented UI destination. No feature boundary in this directory authorizes provider access, live transport, customer data, runtime AI or a new engine release.
 

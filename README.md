@@ -2,7 +2,7 @@
 
 G.A.S. Workbench is Lowcountry Digital Works' operator product for the **Generative / Answer / Search** (G.A.S.) intelligence program.
 
-**Current status:** The synthetic/public-safe operator frontend is accepted through [Workbench PR #27](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/27). The original Source Atlas, Visibility, Technical, Measure / Outcomes, Reports, and LDW-internal Sites / Portfolio slices are implemented. This is **not** an authorized live provider integration, customer portal, production service, or autonomous recommendation engine.
+**Current status:** The nine-destination synthetic/public-safe operator frontend is accepted on `main` through [Workbench PR #45](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/45), including factual multi-engagement filters ([PR #37](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/37)), explicit fail-closed tenant selection ([PR #35](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/35)), the pure selection-bound workspace preflight ([PR #39](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/39)), truthful Evidence missingness counts ([PR #41](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/41)), and bounded visible keyboard-focus return ([PR #45](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/45)). **This is not a live provider integration, customer portal, production service, automatic authorization, or autonomous recommendation engine.**
 
 ## Product and semantic ownership
 
@@ -12,7 +12,7 @@ G.A.S. Workbench is Lowcountry Digital Works' operator product for the **Generat
 
 ## Implemented operator destinations
 
-Home, Visibility, Technical, Evidence, Attention, Decision, Measure / Outcomes, Reports, and **Sites / Portfolio** are registered in `src/app/moduleRegistry.ts`. These destinations consume checked synthetic/public-safe state and preserve exact site/scope/target and evidence references. The Portfolio view is explicitly **LDW internal**, not a customer-facing comparison/ranking dashboard.
+Home, Visibility, Technical, Evidence, Attention, Decision, Measure / Outcomes, Reports, and **Sites / Portfolio** are registered in `src/app/moduleRegistry.ts`. These destinations consume checked synthetic/public-safe state and preserve exact site/scope/target and evidence references. The Portfolio view is explicitly **LDW internal**, not a customer-facing comparison/ranking dashboard. Its operator-selected engagement stays bound to the exact supplied inventory identity; a selected workspace match is presentation-only, **never** a substitute for authenticated tenant grants and a trusted transport.
 
 `discover` is a reserved module ID but **not** a registered destination. Implementation requires a separate accepted operator-value trigger and bounded issue; it must not clone keyword research, crawlers, provider dashboards, or auto-content-generation tools.
 

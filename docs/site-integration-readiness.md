@@ -44,11 +44,11 @@ These three names are *candidate sites offered by the owner*, not trusted invent
 
 ## Proposed order
 
-1. Preserve and independently review this pure/local synthetic preflight on Workbench main.
+1. Preserve the already independently reviewed pure/local synthetic preflight on accepted Workbench main; recheck the exact currently deployed source and identities before any subsequent integration, rather than reopening an already completed initial source review.
 2. Privately reconcile which candidate sites have trusted inventory, authorized source connections, accepted current runs and separately supplied workspaces. Unknown remains *not supplied*.
 3. Select the smallest authenticated and tenant-bound private read path. Reuse accepted G.A.S. Engine, WQT and provider adapters; do not create a second provider client or control plane in the frontend.
 4. After a separate exact runtime and classified-data gate, prove one authorized site read-only, retest identity and export isolation, and accept additional sites by explicit scope.
 
 ## Excluded
 
-This work creates no provider API call, crawler, OAuth flow, new engine release, scheduler, DB, cloud service, runtime AI, customer portal, live-site scan, customer evidence import, production deployment or spend. The separate Workbench documentation PR #29 owns older README/architecture drift and remains untouched.
+This work creates no provider API call, crawler, OAuth flow, new engine release, scheduler, DB, cloud service, runtime AI, customer portal, live-site scan, customer evidence import, production deployment or spend. Earlier Workbench documentation PR #29 is an accepted historical source, not an active docs owner or transport authorization. Current documentation and live GitHub/issue state remain controlling.
