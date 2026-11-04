@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Badge, Facts, Notice } from '../../design-system/primitives'
 import { timestamp } from '../../design-system/format'
 import type { PortfolioEngagement, PortfolioFeatureProjection } from '../../engine/portfolio-projection'
+import { choosePortfolioEngagement, resolvePortfolioEngagement, type PortfolioSelection } from './selection'
 
 function words(value: string) { return value.replaceAll('_', ' ') }
 function countRows(rows: readonly Readonly<{ state: string; count: number }>[]) { return rows.filter((row) => row.count > 0) }
@@ -65,9 +66,13 @@ function EngagementDetail({ engagement }: { engagement: PortfolioEngagement }) {
 }
 
 export function Portfolio({ projection }: { projection: PortfolioFeatureProjection }) {
+  return <PortfolioSnapshot key={projection.portfolio.id} projection={projection}/>
+}
+
+function PortfolioSnapshot({ projection }: { projection: PortfolioFeatureProjection }) {
   const portfolio = projection.portfolio
-  const [selectedId, setSelectedId] = useState(portfolio.engagements[0]?.engagementId ?? '')
-  const selected = portfolio.engagements.find((entry) => entry.engagementId === selectedId) ?? portfolio.engagements[0]!
+  const [selection, setSelection] = useState<PortfolioSelection>()
+  const selected = resolvePortfolioEngagement(projection, selection)
   const summary = portfolio.summary
   return <section className="portfolio-view">
     <header className="portfolio-heading">
@@ -86,12 +91,21 @@ export function Portfolio({ projection }: { projection: PortfolioFeatureProjecti
     <div className="portfolio-layout">
       <section className="portfolio-list" aria-label="Trusted engagements">
         <div className="portfolio-section-heading"><div><p className="eyebrow">Trusted inventory</p><h3>Engagements</h3></div><Badge>{portfolio.engagements.length}</Badge></div>
-        {portfolio.engagements.map((engagement) => <button type="button" className="portfolio-engagement" aria-pressed={engagement.engagementId === selected.engagementId} key={engagement.engagementId} onClick={() => setSelectedId(engagement.engagementId)}>
+        {portfolio.engagements.map((engagement) => <button type="button" className="portfolio-engagement" aria-pressed={engagement.engagementId === selected?.engagementId} key={engagement.engagementId} onClick={() => setSelection(choosePortfolioEngagement(projection, engagement.engagementId))}>
           <span><strong>{engagement.label}</strong><small>{engagement.trustedTarget}</small></span>
           <span className="portfolio-engagement-meta"><Badge>{words(engagement.currentRunState)}</Badge><small>{engagement.exceptions.length} factual exception{engagement.exceptions.length === 1 ? '' : 's'}</small></span>
         </button>)}
       </section>
-      <EngagementDetail engagement={selected}/>
+      {selected ? <EngagementDetail engagement={selected}/> : (
+        <section className="portfolio-detail" aria-label="Engagement selection">
+          <div className="portfolio-detail-heading">
+            <div><p className="eyebrow">Explicit operator selection</p><h3>{selection ? 'Engagement selection expired' : 'Select an engagement'}</h3></div>
+          </div>
+          <Notice>{selection
+            ? 'The portfolio or trusted engagement identity changed. Choose an engagement again to inspect current details. No other tenant is selected automatically.'
+            : 'Choose a trusted engagement to inspect its exact tenant, scope, run, and source state. No customer is selected automatically.'}</Notice>
+        </section>
+      )}
     </div>
 
     <section className="portfolio-rollups"><h3>Operational roll-ups</h3><p className="muted">Only non-zero accepted state counts are shown.</p><div className="portfolio-rollup-grid">
