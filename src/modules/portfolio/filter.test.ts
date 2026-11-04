@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadPortfolioFixture } from '../../engine/portfolioFixtures'
 import { choosePortfolioEngagement } from './selection'
-import { filterPortfolioEngagements, resolveVisiblePortfolioEngagement, PORTFOLIO_FILTERS } from './filter'
+import { changePortfolioFilter, filterPortfolioEngagements, resolveVisiblePortfolioEngagement, PORTFOLIO_FILTERS } from './filter'
 
 const projection = loadPortfolioFixture()
 const engagements = projection.portfolio.engagements
@@ -23,6 +23,17 @@ describe('factual portfolio triage filters', () => {
     expect(filterPortfolioEngagements([], 'all')).toEqual([])
     expect(filterPortfolioEngagements([], 'source-exceptions')).toEqual([])
     expect(ids('all')).toEqual(engagements.map((entry) => entry.engagementId))
+  })
+
+  it('atomically discards explicit selection when changing factual filters', () => {
+    const selection = choosePortfolioEngagement(projection, 'engagement-alpha')!
+    const initial = { filter: 'all' as const, selection }
+    const changed = changePortfolioFilter(initial, 'no-current-run')
+    expect(changed).toEqual({ filter: 'no-current-run' })
+    expect(changed.selection).toBeUndefined()
+    expect(resolveVisiblePortfolioEngagement(projection, changed.selection, changed.filter)).toBeUndefined()
+    expect(changePortfolioFilter(initial, 'all')).toBe(initial)
+    expect(initial.selection).toBe(selection)
   })
 
   it('never substitutes a hidden row, a different tenant with the same site ID, or a first-row default', () => {
