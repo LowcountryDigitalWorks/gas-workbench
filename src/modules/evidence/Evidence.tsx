@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import type { WorkbenchProjection } from '../../engine/projection'
 import { Badge, Facts, Icon, Notice } from '../../design-system/primitives'
 import { moduleName, providerName, readable } from '../../design-system/format'
-import { filterSources, safeHttpUrl } from './presentation'
+import { filterSources, partitionSourceLedger, safeHttpUrl } from './presentation'
 
 export function Evidence({
   projection,
@@ -21,6 +21,7 @@ export function Evidence({
   const detailHeading = useRef<HTMLHeadingElement>(null)
   const w = projection.workspace
   const filtered = filterSources(w.readiness, w.sourceManifest, query, state)
+  const { listed, groupedNotSupplied } = partitionSourceLedger(filtered, query, state)
   const entry = w.readiness.find((source) => source.moduleId === selected)
   const sources = w.sourceManifest.filter(
     (source) => source.moduleId === selected,
@@ -63,17 +64,12 @@ export function Evidence({
           </label>
         </div>
         <p className="filter-status" role="status" aria-live="polite">
-          {filtered.length} of {w.readiness.length} modules shown
+          {listed.length} of {w.readiness.length} modules listed{groupedNotSupplied.length > 0
+            ? `; ${groupedNotSupplied.length} not supplied grouped below`
+            : ''}
         </p>
         <ul className="source-list">
-          {filtered
-            .filter(
-              (source) =>
-                source.state !== 'not_supplied' ||
-                query !== '' ||
-                state !== 'all',
-            )
-            .map((source) => {
+          {listed.map((source) => {
               const manifest = w.sourceManifest.filter(
                 (item) => item.moduleId === source.moduleId,
               )
@@ -123,20 +119,15 @@ export function Evidence({
               )
             })}
         </ul>
-        {query === '' && state === 'all' && (
+        {groupedNotSupplied.length > 0 && (
           <details className="missing-modules">
             <summary>
               Not supplied (
-              {
-                filtered.filter((source) => source.state === 'not_supplied')
-                  .length
-              }{' '}
+              {groupedNotSupplied.length}{' '}
               modules)
             </summary>
             <ul className="source-list">
-              {filtered
-                .filter((source) => source.state === 'not_supplied')
-                .map((source) => (
+              {groupedNotSupplied.map((source) => (
                   <li key={source.moduleId}>
                     <button
                       className="source-row"
