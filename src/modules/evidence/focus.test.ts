@@ -7,7 +7,7 @@ function target(connected: boolean, visible: boolean, actuallyVisible = visible)
   const candidate = {
     isConnected: connected,
     getClientRects: () => ({ length: visible ? 1 : 0 }) as DOMRectList,
-    checkVisibility: () => actuallyVisible,
+    checkVisibility: vi.fn(() => actuallyVisible),
     focus,
   } satisfies EvidenceFocusCandidate
   return { candidate, focus }
@@ -41,7 +41,15 @@ describe('Evidence inspector focus return', () => {
     const search = target(true, true)
     const choice = selectEvidenceReturnFocusTarget(closedDisclosureRow.candidate, search.candidate)
     expect(closedDisclosureRow.candidate.getClientRects().length).toBe(1)
-    expect(closedDisclosureRow.candidate.checkVisibility()).toBe(false)
+    expect(closedDisclosureRow.candidate.checkVisibility).toHaveBeenCalledTimes(1)
+    expect(closedDisclosureRow.candidate.checkVisibility).toHaveBeenCalledWith({
+      checkVisibilityCSS: true,
+      checkOpacity: true,
+    })
+    expect(search.candidate.checkVisibility).toHaveBeenCalledWith({
+      checkVisibilityCSS: true,
+      checkOpacity: true,
+    })
     expect(choice).toBe(search.candidate)
     choice?.focus()
     expect(closedDisclosureRow.focus).not.toHaveBeenCalled()
