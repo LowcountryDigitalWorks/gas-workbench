@@ -3,7 +3,7 @@
 // Fail closed when Chrome or a real keyboard/focus transition cannot be proven.
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
-import { readFile, mkdtemp, rm } from 'node:fs/promises'
+import { readFile, writeFile, mkdtemp, mkdir, readdir, rm } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { extname, join, resolve, sep } from 'node:path'
@@ -145,6 +145,103 @@ async function attentionChoiceProof(cdp, url) {
   console.log('ATTENTION_LINKED_EVIDENCE_PASS: explicit Evidence-to-Attention navigation binds only exact referenced item')
 }
 
+async function reportBrowserProof(cdp, url, tempProfile) {
+  // Only checked public-safe fixtures on the local built application. No remote traffic.
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 840, deviceScaleFactor: 1, mobile: false })
+  await cdp.send('Page.navigate', { url: url + '?qa=report' })
+  await waitFor(() => cdp.evaluate('document.querySelectorAll("button.nav-item").length === 9'), 'Report test shell')
+  async function tabTo(selector, textPart = '') {
+    for (let index = 0; index < 130; index += 1) {
+      await cdp.key('Tab')
+      const match = await cdp.evaluate('(() => { const e = document.activeElement; return e?.matches(' + JSON.stringify(selector) + ') && e?.textContent.includes(' + JSON.stringify(textPart) + '); })()')
+      if (match) return
+    }
+    throw new Error('Could not tab to report control ' + selector + ' / ' + textPart)
+  }
+  await tabTo('.nav-item', 'Reports')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".report-view select"))'), 'Reports view')
+  await tabTo('.report-heading select')
+  await cdp.key('End')
+  await waitFor(() => cdp.evaluate('document.querySelector(".report-heading select")?.value === "internal-appendix"'), 'Internal appendix case selection')
+  await waitFor(() => cdp.evaluate('document.querySelector(".report-paper h3")?.textContent.includes("Internal Appendix") && Boolean(document.querySelector(".report-internal")) && Boolean(document.querySelector(".report-controls"))'), 'Checked internal appendix report')
+  assert.equal(await cdp.evaluate('document.querySelector(".report-controls")?.textContent.includes("includes internal appendix")'), true)
+
+  // Inspect real PDF text, not only DOM/CSS. Poppler is preinstalled on hosted CI
+  // in the supported runner image; if absent, fail closed instead of claiming isolation.
+  const pdftotext = spawnSync('pdftotext', ['-v'], { encoding: 'utf8', timeout: 4000 })
+  assert.equal(pdftotext.status, 0, 'PDF text extraction tool required to establish actual print isolation')
+  const pdf = await cdp.send('Page.printToPDF', { printBackground: true })
+  assert.ok(typeof pdf.data === 'string' && pdf.data.length > 500, 'Chrome must return PDF bytes')
+  const pdfFile = join(tempProfile, 'customer-safe-print.pdf')
+  const pdfBytes = Buffer.from(pdf.data, 'base64')
+  assert.equal(pdfBytes.subarray(0, 5).toString('ascii'), '%PDF-')
+  await writeFile(pdfFile, pdfBytes)
+  const extracted = spawnSync('pdftotext', ['-layout', '-nopgbrk', '-enc', 'UTF-8', pdfFile, '-'], { encoding: 'utf8', timeout: 10000, maxBuffer: 2 * 1024 * 1024 })
+  assert.equal(extracted.status, 0, 'Actual PDF text must be parseable')
+  const body = extracted.stdout
+  const readablePdf = body.replace(/\s+/g, ' ')
+  if (!readablePdf.includes('Customer Report with Internal Appendix')) {
+    console.log('REPORT_PDF_TEXT_DIAGNOSTIC:', JSON.stringify({ characters: body.length, prefix: body.slice(0, 1100) }))
+  }
+  assert.ok(readablePdf.includes('Customer Report with Internal Appendix'), 'PDF must contain customer-facing report title')
+  assert.ok(readablePdf.includes('Executive summary'), 'PDF must contain the report body')
+  for (const forbidden of [
+    'workspace:synthetic-report-internal-001',
+    'service-brief:synthetic-human-review',
+    'attention:page-focus:services',
+    'Internal provenance only',
+  ]) {
+    assert.ok(!body.replace(/\s+/g, '').includes(forbidden.replace(/\s+/g, '')), 'Private appendix token leaked into actual printed PDF: ' + forbidden)
+  }
+  console.log('REPORT_PDF_ISOLATION_PASS: extracted Chrome PDF includes customer report but excludes every internal appendix marker')
+  // The actual UI print control must activate window.print; PDF content is
+  // checked separately through Chrome's own print-to-PDF capability above.
+  await cdp.evaluate('window.__gasPrintInvocations = 0; window.print = () => { window.__gasPrintInvocations += 1 }')
+  await tabTo('.report-controls button', 'Print customer-safe body')
+  await cdp.key('Enter')
+  assert.equal(await cdp.evaluate('window.__gasPrintInvocations'), 1, 'Print button must invoke the browser print action')
+
+  // Check a completed browser download on disk. A synthetic button click or
+  // mere object URL existence is insufficient proof that the file was saved.
+  const downloads = join(tempProfile, 'downloads')
+  await mkdir(downloads, { recursive: true })
+  await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads })
+  async function download(expectedTitle, shouldIncludeAppendix) {
+    await tabTo('.report-controls button', 'Download supplied JSON')
+    await cdp.key('Enter')
+    const file = await waitFor(async () => {
+      const files = await readdir(downloads)
+      if (files.some(x => x.endsWith('.crdownload'))) return null
+      const matches = files.filter(x => x.endsWith('.json'))
+      return matches.length > 0 ? matches[0] : null
+    }, 'completed JSON file download')
+    const content = JSON.parse(await readFile(join(downloads, file), 'utf8'))
+    assert.equal(content.title, expectedTitle)
+    assert.ok(content.id.startsWith('customer-report:'), 'Export must carry actual accepted report identity')
+    assert.equal(content.context.siteId, 'site:harbor-demo')
+    if (shouldIncludeAppendix) {
+      assert.equal(content.internalAppendix?.workspaceId, 'workspace:synthetic-report-internal-001')
+      assert.equal(content.internalAppendix?.serviceBriefId, 'service-brief:synthetic-human-review')
+      assert.deepEqual(content.internalAppendix?.selectedAttentionIds, ['attention:page-focus:services'])
+    } else {
+      assert.equal(Object.hasOwn(content, 'internalAppendix'), false)
+    }
+    await rm(join(downloads, file))
+    return { reportId: content.id, name: file }
+  }
+  const internal = await download('Harbor Demo — Customer Report with Internal Appendix', true)
+  await cdp.key('ShiftTab')
+  assert.equal(await cdp.evaluate('document.activeElement === document.querySelector(".report-heading select")'), true)
+  await cdp.key('Home')
+  await waitFor(() => cdp.evaluate('document.querySelector(".report-heading select")?.value === "quiet-report"'), 'Quiet report case selection')
+  await waitFor(() => cdp.evaluate('document.querySelector(".report-paper h3")?.textContent.includes("Evidence Readiness Brief") && !document.querySelector(".report-internal") && Boolean(document.querySelector(".report-controls"))'), 'Checked quiet report and appendix absence')
+  assert.equal(await cdp.evaluate('document.querySelector(".report-controls")?.textContent.includes("includes internal appendix")'), false)
+  const quiet = await download('Harbor Demo — Evidence Readiness Brief', false)
+  assert.notEqual(quiet.reportId, internal.reportId, 'Case switch must not export the prior report')
+  console.log('REPORT_BROWSER_EXPORT_PASS: actual completed Chrome JSON downloads matched both case identities and internal appendix boundary')
+}
+
 class DevTools {
   constructor(url) {
     this.ws = new WebSocket(url)
@@ -179,11 +276,15 @@ class DevTools {
     return response.result.value
   }
   async key(name) {
-    const mapping = name === 'Tab'
-      ? { key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 }
+    const mapping = name === 'Tab' || name === 'ShiftTab'
+      ? { key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9, ...(name === 'ShiftTab' ? { modifiers: 8 } : {}) }
       : name === 'Enter'
         ? { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 }
-        : { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
+        : name === 'End'
+          ? { key: 'End', code: 'End', windowsVirtualKeyCode: 35 }
+          : name === 'Home'
+            ? { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 }
+            : { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
     // Chromium requires Enter's character payload for keyboard activation.
     // Dispatching only keyDown/keyUp focuses a button but does not click it.
     const keyDown = name === 'Enter'
@@ -232,7 +333,8 @@ try {
   await keyboardProof(cdp, localUrl, 375, 'Attention present', 'Synthetic Alpha', 'Enter')
   await keyboardProof(cdp, localUrl, 375, 'No current run', 'no current run', 'Space')
   await attentionChoiceProof(cdp, localUrl)
-  console.log('BROWSER_QA_PASS: synthetic Portfolio and Home-to-Attention keyboard proof')
+  await reportBrowserProof(cdp, localUrl, profile)
+  console.log('BROWSER_QA_PASS: synthetic Portfolio, Attention, and customer-safe Reports PDF/JSON proof')
 } catch (error) {
   console.error('BROWSER_QA_FAIL:', error)
   process.exitCode = 1

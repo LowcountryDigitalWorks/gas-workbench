@@ -29,7 +29,7 @@ npm audit
 git diff --check
 ```
 
-`npm run check` runs TypeScript, strict ESLint, Vitest, and a Vite production build. Hosted CI additionally runs `npm run test:browser`, a dependency-free, synthetic-only headless Chrome keyboard/focus proof for Portfolio and Attention operator flows. `npm run dev` serves the local synthetic UI. A passing build does **not** grant production deployment or customer-data authority.
+`npm run check` runs TypeScript, strict ESLint, Vitest, and a Vite production build. Hosted CI additionally runs `npm run test:browser`, a synthetic-only headless Chrome proof for Portfolio and Attention keyboard/focus flows and Reports print/JSON export. The Reports proof checks actual Chrome-generated PDF text for internal-appendix exclusion and the completed JSON downloads for exact checked report identity and appendix scope. `poppler-utils` is installed solely in the disposable CI runner when its PDF text extractor is absent; no application/runtime package is added. `npm run dev` serves the local synthetic UI. A passing build does **not** grant production deployment or customer-data authority.
 
 The temporary root `minimatch` override is tracked under [#14](https://github.com/LowcountryDigitalWorks/gas-workbench/issues/14); do not remove it until a supported parent toolchain resolves a fixed line and the full audit remains clean.
 
