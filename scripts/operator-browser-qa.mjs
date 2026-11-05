@@ -167,8 +167,8 @@ async function reportBrowserProof(cdp, url, tempProfile) {
   await waitFor(() => cdp.evaluate('document.querySelector(".report-paper h3")?.textContent.includes("Internal Appendix") && Boolean(document.querySelector(".report-internal")) && Boolean(document.querySelector(".report-controls"))'), 'Checked internal appendix report')
   assert.equal(await cdp.evaluate('document.querySelector(".report-controls")?.textContent.includes("includes internal appendix")'), true)
 
-  // Inspect real PDF text, not only DOM/CSS. Poppler is preinstalled on hosted CI
-  // in the supported runner image; if absent, fail closed instead of claiming isolation.
+  // Inspect actual printed PDF text, not only DOM/CSS. The ephemeral CI
+  // job supplies Poppler when absent; fail closed if extraction is unavailable.
   const pdftotext = spawnSync('pdftotext', ['-v'], { encoding: 'utf8', timeout: 4000 })
   assert.equal(pdftotext.status, 0, 'PDF text extraction tool required to establish actual print isolation')
   const pdf = await cdp.send('Page.printToPDF', { printBackground: true })
@@ -207,7 +207,7 @@ async function reportBrowserProof(cdp, url, tempProfile) {
   const downloads = join(tempProfile, 'downloads')
   await mkdir(downloads, { recursive: true })
   await cdp.send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads })
-  async function download(expectedTitle, shouldIncludeAppendix) {
+  async function download(expectedTitle, expectedId, shouldIncludeAppendix) {
     await tabTo('.report-controls button', 'Download supplied JSON')
     await cdp.key('Enter')
     const file = await waitFor(async () => {
@@ -218,7 +218,8 @@ async function reportBrowserProof(cdp, url, tempProfile) {
     }, 'completed JSON file download')
     const content = JSON.parse(await readFile(join(downloads, file), 'utf8'))
     assert.equal(content.title, expectedTitle)
-    assert.ok(content.id.startsWith('customer-report:'), 'Export must carry actual accepted report identity')
+    assert.equal(content.id, expectedId, 'Export must preserve the exact checked report identity')
+    assert.equal(file, expectedId.replace(':', '-') + '.json', 'Download filename must match the selected exact report ID')
     assert.equal(content.context.siteId, 'site:harbor-demo')
     if (shouldIncludeAppendix) {
       assert.equal(content.internalAppendix?.workspaceId, 'workspace:synthetic-report-internal-001')
@@ -230,14 +231,22 @@ async function reportBrowserProof(cdp, url, tempProfile) {
     await rm(join(downloads, file))
     return { reportId: content.id, name: file }
   }
-  const internal = await download('Harbor Demo — Customer Report with Internal Appendix', true)
+  const internal = await download(
+    'Harbor Demo — Customer Report with Internal Appendix',
+    'customer-report:f20a22722c2976a255d7266a3035187be3bedcf62bc647a02d769d18fbe2770f',
+    true,
+  )
   await cdp.key('ShiftTab')
   assert.equal(await cdp.evaluate('document.activeElement === document.querySelector(".report-heading select")'), true)
   await cdp.key('Home')
   await waitFor(() => cdp.evaluate('document.querySelector(".report-heading select")?.value === "quiet-report"'), 'Quiet report case selection')
   await waitFor(() => cdp.evaluate('document.querySelector(".report-paper h3")?.textContent.includes("Evidence Readiness Brief") && !document.querySelector(".report-internal") && Boolean(document.querySelector(".report-controls"))'), 'Checked quiet report and appendix absence')
   assert.equal(await cdp.evaluate('document.querySelector(".report-controls")?.textContent.includes("includes internal appendix")'), false)
-  const quiet = await download('Harbor Demo — Evidence Readiness Brief', false)
+  const quiet = await download(
+    'Harbor Demo — Evidence Readiness Brief',
+    'customer-report:4595eb83e38b461bcf92a4f3423e87148d99d06defb47f8282e4aec936b4f815',
+    false,
+  )
   assert.notEqual(quiet.reportId, internal.reportId, 'Case switch must not export the prior report')
   console.log('REPORT_BROWSER_EXPORT_PASS: actual completed Chrome JSON downloads matched both case identities and internal appendix boundary')
 }
