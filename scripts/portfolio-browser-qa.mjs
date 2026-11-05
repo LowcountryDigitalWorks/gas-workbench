@@ -138,7 +138,7 @@ class DevTools {
     // Chromium requires Enter's character payload for keyboard activation.
     // Dispatching only keyDown/keyUp focuses a button but does not click it.
     const keyDown = name === 'Enter'
-      ? { ...mapping, text: '\\r', unmodifiedText: '\\r' }
+      ? { ...mapping, text: '\r', unmodifiedText: '\r' }
       : mapping
     await this.send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyDown })
     await this.send('Input.dispatchKeyEvent', { type: 'keyUp', ...mapping })
