@@ -319,6 +319,70 @@ async function reportUnavailableBrowserProof(cdp, url) {
   }
 }
 
+async function snapshotDialogProof(cdp, url) {
+  // All snapshots are checked, public-safe fixtures loaded by the existing
+  // application. No CDP-side product state or source claims are fabricated.
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 840, deviceScaleFactor: 1, mobile: false })
+  await cdp.send('Page.navigate', { url: url + '?qa=snapshot-dialog' })
+  await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5 && document.querySelector(".header-context")?.disabled === false && Boolean(document.querySelector(".snapshot-status"))'), 'quiet checked snapshot')
+  async function tabTo(selector, textPart = '') {
+    for (let attempt = 0; attempt < 130; attempt += 1) {
+      await cdp.key('Tab')
+      const matches = await cdp.evaluate('(() => { const node = document.activeElement; return Boolean(node?.matches(' + JSON.stringify(selector) + ') && node?.textContent.includes(' + JSON.stringify(textPart) + ')); })()')
+      if (matches) return
+    }
+    throw new Error('Could not keyboard-focus ' + selector + ' (' + textPart + ')')
+  }
+  const opener = '.header-context'
+  await tabTo(opener, 'Snapshot details')
+  assert.equal(await cdp.evaluate('document.activeElement === document.querySelector(".header-context")'), true)
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === true'), 'Snapshot details modal opening')
+  const initial = await cdp.evaluate('(() => { const d = document.querySelector("dialog"); const heading = d?.querySelector("#snapshot-dialog-title"); return { modal: d?.matches(":modal") === true, label: d?.getAttribute("aria-labelledby"), title: heading?.textContent, workspace: d?.textContent.includes("workspace:synthetic-quiet-001"), limitedAbsent: !d?.textContent.includes("workspace:synthetic-limited-001"), focusInside: d?.contains(document.activeElement), initialFocus: document.activeElement?.getAttribute("aria-label") }; })()')
+  assert.deepEqual(initial, { modal: true, label: 'snapshot-dialog-title', title: 'Snapshot details & limits', workspace: true, limitedAbsent: true, focusInside: true, initialFocus: 'Close snapshot details' }, 'Native dialog must be modal, labelled, exact-snapshot bound, and keyboard focused')
+  // The native dialog has one close control. Wrapping in either direction must
+  // retain focus on that control, never on a covered page or the body.
+  await cdp.key('Tab')
+  assert.equal(await cdp.evaluate('document.activeElement === document.querySelector("dialog .dialog-heading button") && document.querySelector("dialog").contains(document.activeElement)'), true)
+  await cdp.key('ShiftTab')
+  assert.equal(await cdp.evaluate('document.activeElement === document.querySelector("dialog .dialog-heading button") && document.querySelector("dialog").contains(document.activeElement)'), true)
+  // Narrow-screen reflow is a presentation check, not a screen-reader claim.
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 320, height: 720, deviceScaleFactor: 1, mobile: false })
+  const narrow = await cdp.evaluate('(() => { const d = document.querySelector("dialog"); const r = d.getBoundingClientRect(); return { width: innerWidth, x: r.x, right: r.right, dialogOpen: d.open, focusInside: d.contains(document.activeElement) }; })()')
+  assert.equal(narrow.width, 320)
+  assert.ok(narrow.x >= -1 && narrow.right <= narrow.width + 1, 'Snapshot dialog must remain inside 320px viewport')
+  assert.equal(narrow.dialogOpen && narrow.focusInside, true)
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 840, deviceScaleFactor: 1, mobile: false })
+  await cdp.key('Escape')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === false && document.activeElement === document.querySelector(".header-context")'), 'Escape closes and restores opener focus')
+  // Reopen, use the real close button, and assert the same focus restoration.
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === true && document.activeElement?.matches("dialog .dialog-heading button")'), 'modal keyboard reentry')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === false && document.activeElement === document.querySelector(".header-context")'), 'close button returns to exact opener')
+
+  // Change the scenario through the public keyboard UI and reopen. The modal
+  // must show ONLY the current checked source, not a stale prior workspace.
+  await tabTo('.fixture-picker button', 'Limited evidence')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent === "Limited evidence" && document.querySelector(".snapshot-status")?.textContent.includes("Limited evidence") && document.querySelector(".header-context")?.disabled === false'), 'limited checked snapshot')
+  await tabTo(opener, 'Snapshot details')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === true'), 'limited snapshot modal')
+  const changed = await cdp.evaluate('(() => { const d = document.querySelector("dialog"); return { limited: d.textContent.includes("workspace:synthetic-limited-001"), quietAbsent: !d.textContent.includes("workspace:synthetic-quiet-001"), currentRevision: d.textContent.includes("scope-revision:limited-001"), oldRevisionAbsent: !d.textContent.includes("scope-revision:quiet-001"), focusInside: d.contains(document.activeElement) }; })()')
+  assert.deepEqual(changed, { limited: true, quietAbsent: true, currentRevision: true, oldRevisionAbsent: true, focusInside: true }, 'Reopened modal must be bound only to the selected current checked workspace')
+  await cdp.key('Escape')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === false && document.activeElement === document.querySelector(".header-context")'), 'limited Escape focus return')
+
+  // Portfolio is a different internal surface and must not expose workspace
+  // snapshot details through an enabled modal opener.
+  await tabTo('.nav-item', 'Sites / Portfolio')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".portfolio-view")) && document.querySelector(".header-context")?.disabled === true'), 'Portfolio snapshot modal disabled')
+  assert.equal(await cdp.evaluate('document.querySelector("dialog")?.open === false && document.querySelector(".skip-link")?.getAttribute("href") === "#main-content"'), true)
+  console.log('SNAPSHOT_DIALOG_BROWSER_PASS: 375px/320px modal label, keyboard trap, Escape/close focus return, exact fixture rebind, and Portfolio disable')
+}
+
 class DevTools {
   constructor(url) {
     this.ws = new WebSocket(url)
@@ -371,7 +435,9 @@ class DevTools {
           ? { key: 'End', code: 'End', windowsVirtualKeyCode: 35 }
           : name === 'Home'
             ? { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 }
-            : { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
+            : name === 'Escape'
+              ? { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }
+              : { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
     // Chromium requires Enter's character payload for keyboard activation.
     // Dispatching only keyDown/keyUp focuses a button but does not click it.
     const keyDown = name === 'Enter'
@@ -423,6 +489,8 @@ try {
   await reportBrowserProof(cdp, localUrl, profile)
   await reportUnavailableBrowserProof(cdp, localUrl)
   console.log('BROWSER_QA_PASS: synthetic Portfolio, Attention, and customer-safe Reports PDF/JSON plus unavailable-state Chrome proof')
+  await snapshotDialogProof(cdp, localUrl)
+  console.log('BROWSER_QA_PASS: synthetic Portfolio, Attention, Reports PDF/JSON, and Snapshot dialog proof')
 } catch (error) {
   console.error('BROWSER_QA_FAIL:', error)
   process.exitCode = 1
