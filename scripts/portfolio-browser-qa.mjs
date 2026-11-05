@@ -67,7 +67,10 @@ async function keyboardProof(cdp, url, width, filterName, entryName, activationK
     throw new Error('Keyboard Tab could not reach ' + className + ' / ' + textPart)
   }
   await tabTo('nav-item', 'Sites / Portfolio')
+  console.log('NAV_BEFORE_ENTER', await active())
   await cdp.key('Enter')
+  await sleep(250)
+  console.log('NAV_AFTER_ENTER', await cdp.evaluate('(() => ({active: document.activeElement?.textContent?.trim().slice(0,80), title: document.querySelector("main h1")?.textContent, current: [...document.querySelectorAll(".nav-item")].find(e => e.getAttribute("aria-current") === "page")?.textContent?.trim().slice(0,80), portfolio: !!document.querySelector(".portfolio-view"), errors: [...document.querySelectorAll("[role=alert]")].map(e=>e.textContent?.trim().slice(0,300))}))()'))
   await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".portfolio-view"))'), 'Portfolio view')
   await tabTo('portfolio-filter', filterName)
   await cdp.key('Enter')
