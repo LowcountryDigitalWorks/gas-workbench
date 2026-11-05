@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { mixedPortfolioFixture } from '../../engine/portfolioFixtures'
 import { parsePortfolioProjection } from '../../engine/portfolio-projection'
-import { Portfolio } from './Portfolio'
+import { EngagementDetail, Portfolio } from './Portfolio'
 
 const clone = <T,>(value: T): T => structuredClone(value)
 
