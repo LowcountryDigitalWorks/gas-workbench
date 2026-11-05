@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadPortfolioFixture } from '../../engine/portfolioFixtures'
 import { choosePortfolioEngagement } from './selection'
-import { changePortfolioFilter, filterPortfolioEngagements, resolveVisiblePortfolioEngagement, PORTFOLIO_FILTERS } from './filter'
+import { changePortfolioFilter, clearPortfolioSelection, filterPortfolioEngagements, resolveVisiblePortfolioEngagement, PORTFOLIO_FILTERS } from './filter'
 
 const projection = loadPortfolioFixture()
 const engagements = projection.portfolio.engagements
@@ -59,4 +59,20 @@ describe('factual portfolio triage filters', () => {
     expect(resolveVisiblePortfolioEngagement(changedPortfolio, alpha, 'all')).toBeUndefined()
     expect(resolveVisiblePortfolioEngagement(changedScope, alpha, 'all')).toBeUndefined()
   })
+  it('clears an explicit tenant choice while preserving the factual filter and other inventory', () => {
+    for (const engagementId of ['engagement-alpha', 'engagement-no-current-run']) {
+      const selection = choosePortfolioEngagement(projection, engagementId)!
+      const previous = { filter: 'all' as const, selection }
+      const cleared = clearPortfolioSelection(previous)
+      expect(cleared).toEqual({ filter: 'all' })
+      expect(cleared.selection).toBeUndefined()
+      expect(clearPortfolioSelection(cleared)).toBe(cleared)
+      expect(resolveVisiblePortfolioEngagement(projection, cleared.selection, cleared.filter)).toBeUndefined()
+      expect(previous.selection).toBe(selection)
+    }
+    const selected = { filter: 'attention-present' as const, selection: choosePortfolioEngagement(projection, 'engagement-alpha')! }
+    expect(clearPortfolioSelection(selected)).toEqual({ filter: 'attention-present' })
+    expect(ids('attention-present')).toEqual(['engagement-alpha'])
+  })
+
 })
