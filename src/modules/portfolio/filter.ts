@@ -46,6 +46,13 @@ export function filterPortfolioEngagements(
   }
 }
 
+/** Explicitly dismiss local tenant detail without changing the chosen factual filter.
+ * This is presentation state only, never authentication or grant revocation.
+ */
+export function clearPortfolioSelection(state: PortfolioFilterState): PortfolioFilterState {
+  return state.selection === undefined ? state : { filter: state.filter }
+}
+
 /** A filtered-out selection is never allowed to render another tenant's detail. */
 export function resolveVisiblePortfolioEngagement(
   projection: PortfolioFeatureProjection,
