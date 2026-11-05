@@ -135,7 +135,12 @@ class DevTools {
       : name === 'Enter'
         ? { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 }
         : { key: ' ', code: 'Space', windowsVirtualKeyCode: 32 }
-    await this.send('Input.dispatchKeyEvent', { type: 'keyDown', ...mapping })
+    // Chromium requires Enter's character payload for keyboard activation.
+    // Dispatching only keyDown/keyUp focuses a button but does not click it.
+    const keyDown = name === 'Enter'
+      ? { ...mapping, text: '\\r', unmodifiedText: '\\r' }
+      : mapping
+    await this.send('Input.dispatchKeyEvent', { type: 'keyDown', ...keyDown })
     await this.send('Input.dispatchKeyEvent', { type: 'keyUp', ...mapping })
   }
   close() { this.ws.close() }
