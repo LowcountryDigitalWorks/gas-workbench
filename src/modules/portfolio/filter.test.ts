@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadPortfolioFixture } from '../../engine/portfolioFixtures'
 import { choosePortfolioEngagement } from './selection'
-import { changePortfolioFilter, filterPortfolioEngagements, resolveVisiblePortfolioEngagement, PORTFOLIO_FILTERS } from './filter'
+import { changePortfolioFilter, clearPortfolioSelection, filterPortfolioEngagements, resolveVisiblePortfolioEngagement, PORTFOLIO_FILTERS } from './filter'
 
 const projection = loadPortfolioFixture()
 const engagements = projection.portfolio.engagements
