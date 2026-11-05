@@ -59,4 +59,21 @@ describe('Portfolio', () => {
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt; Alpha')
     expect(html).not.toContain('<script>alert(1)</script>')
   })
+  it('offers explicit local dismissal only in selected detail and preserves no-current-run identity', () => {
+    const projection = parsePortfolioProjection(mixedPortfolioFixture)
+    const alpha = projection.portfolio.engagements.find((row) => row.engagementId === 'engagement-alpha')!
+    const noRun = projection.portfolio.engagements.find((row) => row.currentRunState === 'no_current_run')!
+    const initial = renderToStaticMarkup(<Portfolio projection={projection}/>)
+    expect(initial).not.toContain('Clear selection')
+    const selected = renderToStaticMarkup(<EngagementDetail engagement={alpha} onClear={() => {}}/>)
+    expect(selected).toContain('type="button"')
+    expect(selected).toContain('Clear selection')
+    expect(selected).toContain('tenant-alpha')
+    expect(selected).not.toContain('tenant-beta')
+    const missingRun = renderToStaticMarkup(<EngagementDetail engagement={noRun} onClear={() => {}}/>)
+    expect(missingRun).toContain('No accepted current run')
+    expect(missingRun).toContain('Clear selection')
+    expect(missingRun).not.toContain('managed-service-run:')
+  })
+
 })
