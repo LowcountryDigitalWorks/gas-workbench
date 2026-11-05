@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Badge, Facts, Notice } from '../../design-system/primitives'
 import { timestamp } from '../../design-system/format'
 import type { PortfolioEngagement, PortfolioFeatureProjection } from '../../engine/portfolio-projection'
 import { choosePortfolioEngagement } from './selection'
-import { changePortfolioFilter, filterPortfolioEngagements, PORTFOLIO_FILTERS, resolveVisiblePortfolioEngagement, type PortfolioFilterState } from './filter'
+import { changePortfolioFilter, clearPortfolioSelection, filterPortfolioEngagements, PORTFOLIO_FILTERS, resolveVisiblePortfolioEngagement, type PortfolioFilterState } from './filter'
 
 function words(value: string) { return value.replaceAll('_', ' ') }
 function countRows(rows: readonly Readonly<{ state: string; count: number }>[]) { return rows.filter((row) => row.count > 0) }
@@ -23,11 +23,11 @@ function SourceRow({ source }: { source: PortfolioEngagement['sources'][number] 
   </article>
 }
 
-function EngagementDetail({ engagement }: { engagement: PortfolioEngagement }) {
+export function EngagementDetail({ engagement, onClear }: { engagement: PortfolioEngagement; onClear: () => void }) {
   return <section className="portfolio-detail" aria-label={`Engagement context for ${engagement.label}`}>
     <div className="portfolio-detail-heading">
       <div><p className="eyebrow">Trusted engagement context</p><h3>{engagement.label}</h3><p className="muted">Selection is navigation only. It is not a portfolio rank, score, or priority.</p></div>
-      <Badge>{words(engagement.currentRunState)}</Badge>
+      <div className="portfolio-detail-actions"><Badge>{words(engagement.currentRunState)}</Badge><button type="button" className="portfolio-filter" onClick={onClear}>Clear selection</button></div>
     </div>
     <Facts rows={[
       ['Target', <code>{engagement.trustedTarget}</code>],
@@ -73,10 +73,18 @@ export function Portfolio({ projection }: { projection: PortfolioFeatureProjecti
 function PortfolioSnapshot({ projection }: { projection: PortfolioFeatureProjection }) {
   const portfolio = projection.portfolio
   const [filterState, setFilterState] = useState<PortfolioFilterState>({ filter: 'all' })
+  const selectedEngagementButton = useRef<HTMLButtonElement | null>(null)
   const { selection, filter } = filterState
   const visibleEngagements = filterPortfolioEngagements(portfolio.engagements, filter)
   const selected = resolveVisiblePortfolioEngagement(projection, selection, filter)
   const summary = portfolio.summary
+  function clearSelection() {
+    const returnTarget = selectedEngagementButton.current
+    setFilterState(clearPortfolioSelection)
+    requestAnimationFrame(() => {
+      if (returnTarget?.isConnected) returnTarget.focus({ preventScroll: true })
+    })
+  }
   return <section className="portfolio-view">
     <header className="portfolio-heading">
       <div><p className="eyebrow">Trusted inventory → accepted run state → operational navigation</p><h2>Sites / Portfolio</h2><p>Internal multi-engagement operations without cross-customer performance scoring.</p></div>
@@ -101,12 +109,12 @@ function PortfolioSnapshot({ projection }: { projection: PortfolioFeatureProject
         </div>
         <p className="portfolio-filter-note" role="status">Showing {visibleEngagements.length} of {portfolio.engagements.length} engagements. Filters reflect accepted operational facts, not ranking or access authority.</p>
         {visibleEngagements.length === 0 ? <Notice>No engagements match this factual filter. Choose another filter; no tenant is selected automatically.</Notice> : null}
-        {visibleEngagements.map((engagement) => <button type="button" className="portfolio-engagement" aria-pressed={engagement.engagementId === selected?.engagementId} key={engagement.engagementId} onClick={() => setFilterState((current) => ({ ...current, selection: choosePortfolioEngagement(projection, engagement.engagementId) }))}>
+        {visibleEngagements.map((engagement) => <button type="button" ref={engagement.engagementId === selected?.engagementId ? selectedEngagementButton : undefined} className="portfolio-engagement" aria-pressed={engagement.engagementId === selected?.engagementId} key={engagement.engagementId} onClick={() => setFilterState((current) => ({ ...current, selection: choosePortfolioEngagement(projection, engagement.engagementId) }))}>
           <span><strong>{engagement.label}</strong><small>{engagement.trustedTarget}</small></span>
           <span className="portfolio-engagement-meta"><Badge>{words(engagement.currentRunState)}</Badge><small>{engagement.exceptions.length} factual exception{engagement.exceptions.length === 1 ? '' : 's'}</small></span>
         </button>)}
       </section>
-      {selected ? <EngagementDetail engagement={selected}/> : (
+      {selected ? <EngagementDetail engagement={selected} onClear={clearSelection}/> : (
         <section className="portfolio-detail" aria-label="Engagement selection">
           <div className="portfolio-detail-heading">
             <div><p className="eyebrow">Explicit operator selection</p><h3>{selection ? 'Engagement selection expired' : 'Select an engagement'}</h3></div>
