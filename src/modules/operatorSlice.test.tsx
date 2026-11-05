@@ -67,6 +67,27 @@ describe('operator slice — supplied meaning and human authority', () => {
     expect(html).toContain('Separate SERP/result validation is required')
     expect(html).toContain('Prepare decision draft')
   })
+  it('presents multiple unranked Attention entries without an implicit human selection', async () => {
+    const p = await loadFixture('human-review')
+    const original = p.workspace.attention[0]
+    const entries = [original, { ...original, id: 'attention:synthetic-second-item' }]
+    const unselected = renderToStaticMarkup(
+      <Attention items={entries} choose={noop} inspect={noop} draft={noop} />,
+    )
+    expect(unselected).toContain('Choose an unranked Attention item')
+    expect(unselected).toContain('Nothing is selected automatically')
+    expect(unselected).toContain('attention:synthetic-second-item')
+    expect(unselected).not.toContain('Selected review context')
+    expect(unselected).not.toContain('Prepare decision draft')
+    expect(unselected).not.toContain('aria-pressed="true"')
+    const chosen = renderToStaticMarkup(
+      <Attention items={entries} selected={entries[1].id} choose={noop} inspect={noop} draft={noop} />,
+    )
+    expect(chosen).toContain('Selected review context')
+    expect(chosen).toContain('Prepare decision draft')
+    expect(chosen).not.toContain('Nothing is selected automatically')
+  })
+
   it('separates a local human draft from supplied human decision context', async () => {
     const p = await loadFixture('human-review')
     const html = renderToStaticMarkup(
