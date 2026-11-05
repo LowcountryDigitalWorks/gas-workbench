@@ -30,7 +30,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck, lint, test, and build
         run: npm run check
-      - name: Synthetic Chrome keyboard focus and tenant-dismissal proof
+      - name: Synthetic Chrome operator keyboard and focus proof
         run: npm run test:browser
       - name: Audit locked dependencies
         run: npm audit
