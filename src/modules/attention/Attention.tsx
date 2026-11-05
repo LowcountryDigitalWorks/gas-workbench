@@ -44,6 +44,9 @@ export function Attention({
               </li>
             ))}
           </ul>
+          {!item && (
+            <Notice>Choose an unranked Attention item to inspect its exact evidence before preparing a human draft. Nothing is selected automatically.</Notice>
+          )}
           {item && (
             <div className="attention-detail">
               <h3>Selected review context</h3>
