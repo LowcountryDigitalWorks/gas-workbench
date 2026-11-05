@@ -94,6 +94,57 @@ async function keyboardProof(cdp, url, width, filterName, entryName, activationK
   assert.ok(state.outlineWidth >= 3, 'keyboard focus outline must be >= 3px')
   console.log(JSON.stringify({ scenario: filterName, activationKey, ...state }))
 }
+async function attentionChoiceProof(cdp, url) {
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 840, deviceScaleFactor: 1, mobile: false })
+  await cdp.send('Page.navigate', { url: url + '?qa=attention' })
+  await waitFor(() => cdp.evaluate('location.search === "?qa=attention" && document.querySelectorAll(".fixture-picker button").length === 5'), 'Home fixture controls')
+  async function tabTo(selector, label) {
+    for (let n = 0; n < 100; n++) {
+      await cdp.key('Tab')
+      const match = await cdp.evaluate('(() => { const e = document.activeElement; return e?.matches(' + JSON.stringify(selector) + ') && e?.textContent.includes(' + JSON.stringify(label) + '); })()')
+      if (match) return
+    }
+    throw new Error('Keyboard focus could not reach ' + selector + ' / ' + label)
+  }
+  // Use the existing *real checked* two-item technical fixture rather than a
+  // test-only mock, proving Home never relies on navigation order as priority.
+  await tabTo('.fixture-picker button', 'Technical review')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector(".home-view h2")?.textContent.includes("2 items for human review")'), 'Home with two unranked Attention items')
+  await tabTo('.home-actions button', 'Review Attention')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelectorAll(".attention-list .source-row").length === 2'), 'two-item Attention list')
+  const unselected = await cdp.evaluate('(() => ({ prompt: document.querySelector(".attention-view")?.textContent.includes("Nothing is selected automatically"), count: document.querySelectorAll(".attention-list .source-row").length, selected: !!document.querySelector(".attention-list [aria-pressed=true]"), details: !!document.querySelector(".attention-detail"), draftAction: !!document.querySelector(".attention-detail button.primary") }))()')
+  assert.deepEqual(unselected, { prompt: true, count: 2, selected: false, details: false, draftAction: false })
+  await tabTo('.attention-list .source-row', 'attention:discovery:services')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".attention-detail button.primary"))'), 'deliberate selection of second Attention item')
+  const selected = await cdp.evaluate('(() => ({ selectedId: document.querySelector(".attention-list [aria-pressed=true] code")?.textContent, exactEvidence: document.querySelector(".attention-detail")?.textContent.includes("synthetic:discovery:services"), draftAction: !!document.querySelector(".attention-detail button.primary") }))()')
+  assert.deepEqual(selected, { selectedId: 'attention:discovery:services', exactEvidence: true, draftAction: true })
+  // Re-entering from Home must discard the prior local selection.
+  await tabTo('.nav-item', 'Home')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".home-view"))'), 'Home reentry')
+  await tabTo('.home-actions button', 'Review Attention')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelectorAll(".attention-list .source-row").length === 2'), 'two-item Attention reentry')
+  assert.equal(await cdp.evaluate('!document.querySelector(".attention-detail") && !document.querySelector(".attention-list [aria-pressed=true]") && document.querySelector(".attention-view").textContent.includes("Nothing is selected automatically")'), true)
+  console.log('ATTENTION_HOME_CHOICE_PASS: two-item keyboard Home navigation does not preselect; deliberate second-item choice and reentry proven')
+
+  // Exact evidence-linked navigation is intentionally different: selecting an
+  // explicit accepted reference must select that very Attention ID and no other.
+  await tabTo('.nav-item', 'Evidence')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".source-inspector"))'), 'checked Evidence inspector')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".linked-context button"))'), 'explicit evidence-linked Attention action')
+  await tabTo('.linked-context button', 'Open linked Attention')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".attention-detail"))'), 'selected linked Attention context')
+  const linked = await cdp.evaluate('(() => ({ selectedId: document.querySelector(".attention-list [aria-pressed=true] code")?.textContent, exactEvidence: document.querySelector(".attention-detail")?.textContent.includes("synthetic:evidence-diff:page-title"), secondStillUnselected: document.querySelectorAll(".attention-list [aria-pressed=true]").length === 1, draftAction: !!document.querySelector(".attention-detail button.primary") }))()')
+  assert.deepEqual(linked, { selectedId: 'attention:evidence-diff:page-title', exactEvidence: true, secondStillUnselected: true, draftAction: true })
+  console.log('ATTENTION_LINKED_EVIDENCE_PASS: explicit Evidence-to-Attention navigation binds only exact referenced item')
+}
+
 class DevTools {
   constructor(url) {
     this.ws = new WebSocket(url)
@@ -180,7 +231,8 @@ try {
   await cdp.send('Runtime.enable')
   await keyboardProof(cdp, localUrl, 375, 'Attention present', 'Synthetic Alpha', 'Enter')
   await keyboardProof(cdp, localUrl, 375, 'No current run', 'no current run', 'Space')
-  console.log('BROWSER_QA_PASS: exact synthetic portfolio selection, filter and keyboard-focus proof')
+  await attentionChoiceProof(cdp, localUrl)
+  console.log('BROWSER_QA_PASS: synthetic Portfolio and Home-to-Attention keyboard proof')
 } catch (error) {
   console.error('BROWSER_QA_FAIL:', error)
   process.exitCode = 1

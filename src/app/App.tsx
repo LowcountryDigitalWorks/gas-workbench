@@ -381,7 +381,9 @@ export function App() {
                 projection={projection}
                 inspect={inspect}
                 review={() => {
-                  setAttention(w!.attention[0]?.id)
+                  // Home opens the unranked list; the operator chooses an item.
+                  // Explicit linked-item handoffs from Evidence/Technical/Visibility remain intact.
+                  setAttention(undefined)
                   navigate('attention')
                 }}
               />

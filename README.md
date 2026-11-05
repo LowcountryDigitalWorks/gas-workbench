@@ -29,7 +29,7 @@ npm audit
 git diff --check
 ```
 
-`npm run check` runs TypeScript, strict ESLint, Vitest, and a Vite production build. `npm run dev` serves the local synthetic UI. A passing build does **not** grant production deployment or customer-data authority.
+`npm run check` runs TypeScript, strict ESLint, Vitest, and a Vite production build. Hosted CI additionally runs `npm run test:browser`, a dependency-free, synthetic-only headless Chrome keyboard/focus proof for Portfolio and Attention operator flows. `npm run dev` serves the local synthetic UI. A passing build does **not** grant production deployment or customer-data authority.
 
 The temporary root `minimatch` override is tracked under [#14](https://github.com/LowcountryDigitalWorks/gas-workbench/issues/14); do not remove it until a supported parent toolchain resolves a fixed line and the full audit remains clean.
 
