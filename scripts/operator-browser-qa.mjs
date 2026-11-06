@@ -153,6 +153,7 @@ async function workspaceJourneyProof(cdp, url) {
     await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false })
     await cdp.send('Page.navigate', { url: url + '?qa=workspace-journey&width=' + width })
     await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5'), 'workspace journey shell at ' + width)
+    assert.equal(await cdp.evaluate('document.activeElement?.tagName'), 'BODY', 'initial render must not steal keyboard focus')
 
     async function tabTo(selector, textPart = '') {
       for (let index = 0; index < 140; index += 1) {
