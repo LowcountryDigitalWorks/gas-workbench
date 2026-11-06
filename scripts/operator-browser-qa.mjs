@@ -146,28 +146,114 @@ async function attentionChoiceProof(cdp, url) {
 }
 
 async function workspaceJourneyProof(cdp, url) {
-  await cdp.send('Page.navigate', { url: url + '?qa=workspace-journey' })
-  await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5'), 'workspace journey shell')
-  await cdp.evaluate('([...document.querySelectorAll(".fixture-picker button")].find(e => e.textContent.trim() === "Human review")).click()')
-  await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Human review" && Boolean(document.querySelector(".snapshot-status"))'), 'explicit Human review workspace')
-  const workspace = await cdp.evaluate('document.querySelector(".header-context")?.disabled === false')
-  assert.equal(workspace, true)
-  await cdp.evaluate('([...document.querySelectorAll("button.nav-item")].find(e => e.textContent.includes("Measure / Outcomes"))).click()')
-  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".measurement-view .measurement-card"))'), 'measurement on selected workspace')
-  const measureBinding = await cdp.evaluate('({ fixture: document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim(), workspace: document.querySelector(".site-identity")?.textContent.trim(), content: Boolean(document.querySelector(".measurement-card")) })')
-  assert.equal(measureBinding.fixture, 'Human review')
-  assert.equal(measureBinding.workspace, 'harbor-demo.example')
-  assert.equal(measureBinding.content, true)
-  await cdp.evaluate('([...document.querySelectorAll("button.nav-item")].find(e => e.textContent.includes("Reports"))).click()')
-  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".report-view .report-paper"))'), 'focused report on selected workspace')
-  assert.equal(await cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim()'), 'Human review')
-  await cdp.evaluate('([...document.querySelectorAll("button.nav-item")].find(e => e.textContent.includes("Visibility"))).click()')
-  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".visibility-view"))'), 'workspace-preserving Visibility view')
-  assert.equal(await cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim()'), 'Human review')
-  await cdp.evaluate('([...document.querySelectorAll(".fixture-picker button")].find(e => e.textContent.trim() === "Technical review")).click()')
-  await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Technical review" && Boolean(document.querySelector(".snapshot-status"))'), 'explicit workspace change')
-  assert.equal(await cdp.evaluate('document.querySelector(".header-context")?.disabled === false'), true)
-  console.log('WORKSPACE_JOURNEY_BROWSER_PASS: navigation preserves explicit workspace; explicit fixture change rebinds it')
+  async function runAtWidth(width) {
+    const expectedWorkspace = 'workspace:synthetic-human-review-001'
+    const expectedAttention = 'attention:page-focus:services'
+    const expectedEvidence = 'synthetic:page-focus:services'
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false })
+    await cdp.send('Page.navigate', { url: url + '?qa=workspace-journey&width=' + width })
+    await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5'), 'workspace journey shell at ' + width)
+
+    async function tabTo(selector, textPart = '') {
+      for (let index = 0; index < 140; index += 1) {
+        await cdp.key('Tab')
+        const match = await cdp.evaluate('(() => { const e = document.activeElement; return e?.matches(' + JSON.stringify(selector) + ') && e?.textContent.includes(' + JSON.stringify(textPart) + '); })()')
+        if (match) return
+      }
+      throw new Error('Keyboard Tab could not reach ' + selector + ' / ' + textPart + ' at ' + width)
+    }
+    async function pressNav(label) {
+      await tabTo('.nav-item', label)
+      const focus = await cdp.evaluate('(() => { const s = getComputedStyle(document.activeElement); return { tag: document.activeElement?.tagName, outline: s.outlineStyle, width: parseFloat(s.outlineWidth), viewport: document.documentElement.clientWidth }; })()')
+      assert.equal(focus.tag, 'BUTTON')
+      assert.notEqual(focus.outline, 'none', 'navigation focus must remain visible')
+      assert.ok(focus.width >= 3, 'navigation focus outline must be at least 3px')
+      if (width === 375) assert.ok(focus.viewport >= width - 20 && focus.viewport <= width, 'narrow layout must fit the viewport')
+      await cdp.key('Enter')
+      await waitFor(() => cdp.evaluate('document.activeElement?.tagName === "H1"'), 'focus moves to ' + label + ' heading')
+    }
+    async function assertWorkspace(expected) {
+      await tabTo('.header-context', 'Snapshot details')
+      await cdp.key('Enter')
+      await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === true'), 'snapshot details dialog')
+      assert.equal(await cdp.evaluate('document.querySelector("dialog")?.textContent.includes(' + JSON.stringify(expected) + ')'), true, 'exact workspace identity')
+      await cdp.key('Escape')
+      await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === false'), 'snapshot details closes')
+    }
+
+    await tabTo('.fixture-picker button', 'Human review')
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Human review" && Boolean(document.querySelector(".snapshot-status"))'), 'explicit Human review workspace')
+    await assertWorkspace(expectedWorkspace)
+
+    // Prove the same case through exact evidence, its linked unranked Attention
+    // item, and a deliberately edited local draft using keyboard input only.
+    await pressNav('Evidence')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".source-inspector"))'), 'Evidence inspector')
+    await tabTo('.source-row', 'Page Focus')
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".linked-context button"))'), 'exact linked Attention action')
+    assert.equal(await cdp.evaluate('document.querySelector(".exact-evidence")?.textContent.includes(' + JSON.stringify(expectedEvidence) + ')'), true)
+    await tabTo('.linked-context button', 'Open linked Attention')
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".attention-detail"))'), 'linked Attention detail')
+    assert.equal(await cdp.evaluate('document.querySelector(".attention-list [aria-pressed=true] code")?.textContent'), expectedAttention)
+    assert.equal(await cdp.evaluate('document.querySelector(".attention-detail")?.textContent.includes(' + JSON.stringify(expectedEvidence) + ')'), true)
+    await assertWorkspace(expectedWorkspace)
+    await tabTo('.attention-detail button.primary', 'Prepare decision draft')
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".decision-view textarea"))'), 'local human draft')
+    assert.equal(await cdp.evaluate('document.querySelector(".draft-context")?.textContent.includes(' + JSON.stringify(expectedAttention) + ')'), true)
+    assert.equal(await cdp.evaluate('document.querySelector(".draft-context")?.textContent.includes(' + JSON.stringify(expectedEvidence) + ')'), true)
+    await tabTo('.decision-view textarea', '')
+    await cdp.send('Input.insertText', { text: 'Synthetic same-workspace journey draft; not recorded.' })
+    const rationale = 'Synthetic same-workspace journey draft; not recorded.'
+    assert.equal(await cdp.evaluate('document.querySelector(".decision-view textarea")?.value'), rationale)
+
+    await assertWorkspace(expectedWorkspace)
+    await pressNav('Measure / Outcomes')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".measurement-view .measurement-card"))'), 'measurement on selected workspace')
+    assert.equal(await cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim()'), 'Human review')
+    await assertWorkspace(expectedWorkspace)
+
+    await pressNav('Reports')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".report-view .report-paper"))'), 'focused report on selected workspace')
+    const reportState = await cdp.evaluate('(() => ({ report: document.querySelector(".report-paper h3")?.textContent, controls: document.querySelectorAll(".report-controls button").length, fixture: document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() }))()')
+    assert.equal(reportState.report, 'Harbor Demo — Focused Evidence Report')
+    assert.equal(reportState.controls, 2)
+    assert.equal(reportState.fixture, 'Human review')
+    await assertWorkspace(expectedWorkspace)
+
+    await pressNav('Decision')
+    assert.equal(await cdp.evaluate('document.querySelector(".decision-view textarea")?.value'), rationale, 'draft must survive same-workspace navigation')
+    await assertWorkspace(expectedWorkspace)
+
+    // An explicit case change must discard all prior-case state. Incompatible
+    // feature views stay unavailable and expose no stale report actions/content.
+    await tabTo('.fixture-picker button', 'Technical review')
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Technical review" && Boolean(document.querySelector(".snapshot-status"))'), 'explicit workspace change')
+    await assertWorkspace('workspace:technical-demo')
+    assert.equal(await cdp.evaluate('!document.querySelector(".attention-list [aria-pressed=true]") && !document.querySelector(".decision-view textarea")'), true)
+    await pressNav('Measure / Outcomes')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".measurement-view .error-state[role=alert]"))'), 'mismatched measurement state')
+    assert.equal(await cdp.evaluate('!document.querySelector(".measurement-card")'), true)
+    await pressNav('Reports')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".report-view .error-state[role=alert]"))'), 'mismatched report state')
+    assert.equal(await cdp.evaluate('!document.querySelector(".report-paper") && !document.querySelector(".report-controls")'), true)
+    await assertWorkspace('workspace:technical-demo')
+
+    await tabTo('.fixture-picker button', 'Human review')
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Human review" && Boolean(document.querySelector(".snapshot-status"))'), 'return to Human review case')
+    await pressNav('Decision')
+    const clearedDraft = await cdp.evaluate('({ noSelection: document.querySelector(".decision-view")?.textContent.includes("There is no selected review context"), rationale: document.querySelector(".decision-view textarea")?.value ?? null, oldAttention: document.querySelector(".decision-view")?.textContent.includes(' + JSON.stringify(expectedAttention) + ') })()')
+    assert.deepEqual(clearedDraft, { noSelection: true, rationale: null, oldAttention: false })
+    await assertWorkspace(expectedWorkspace)
+    console.log('WORKSPACE_JOURNEY_BROWSER_PASS: keyboard journey, exact case identity, ephemeral draft retention, explicit-case teardown, and focus at ' + width + 'px')
+  }
+  await runAtWidth(1280)
+  await runAtWidth(375)
 }
 
 async function reportBrowserProof(cdp, url, tempProfile) {
