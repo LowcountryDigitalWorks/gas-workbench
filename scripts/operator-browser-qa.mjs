@@ -156,7 +156,7 @@ async function workspaceJourneyProof(cdp, url) {
   await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".measurement-view .measurement-card"))'), 'measurement on selected workspace')
   const measureBinding = await cdp.evaluate('({ fixture: document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim(), workspace: document.querySelector(".site-identity")?.textContent.trim(), content: Boolean(document.querySelector(".measurement-card")) })')
   assert.equal(measureBinding.fixture, 'Human review')
-  assert.equal(measureBinding.workspace, 'Harbor Demo')
+  assert.equal(measureBinding.workspace, 'harbor-demo.example')
   assert.equal(measureBinding.content, true)
   await cdp.evaluate('([...document.querySelectorAll("button.nav-item")].find(e => e.textContent.includes("Reports"))).click()')
   await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".report-view .report-paper"))'), 'focused report on selected workspace')
