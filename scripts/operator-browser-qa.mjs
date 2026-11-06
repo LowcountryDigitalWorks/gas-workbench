@@ -145,6 +145,31 @@ async function attentionChoiceProof(cdp, url) {
   console.log('ATTENTION_LINKED_EVIDENCE_PASS: explicit Evidence-to-Attention navigation binds only exact referenced item')
 }
 
+async function workspaceJourneyProof(cdp, url) {
+  await cdp.send('Page.navigate', { url: url + '?qa=workspace-journey' })
+  await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5'), 'workspace journey shell')
+  await cdp.evaluate('([...document.querySelectorAll(".fixture-picker button")].find(e => e.textContent.trim() === "Human review")).click()')
+  await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Human review" && Boolean(document.querySelector(".snapshot-status"))'), 'explicit Human review workspace')
+  const workspace = await cdp.evaluate('document.querySelector(".header-context")?.disabled === false')
+  assert.equal(workspace, true)
+  await cdp.evaluate('([...document.querySelectorAll("button.nav-item")].find(e => e.textContent.includes("Measure / Outcomes"))).click()')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".measurement-view .measurement-card"))'), 'measurement on selected workspace')
+  const measureBinding = await cdp.evaluate('({ fixture: document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim(), workspace: document.querySelector(".site-identity")?.textContent.trim(), content: Boolean(document.querySelector(".measurement-card")) })')
+  assert.equal(measureBinding.fixture, 'Human review')
+  assert.equal(measureBinding.workspace, 'Harbor Demo')
+  assert.equal(measureBinding.content, true)
+  await cdp.evaluate('([...document.querySelectorAll("button.nav-item")].find(e => e.textContent.includes("Reports"))).click()')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".report-view .report-paper"))'), 'focused report on selected workspace')
+  assert.equal(await cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim()'), 'Human review')
+  await cdp.evaluate('([...document.querySelectorAll("button.nav-item")].find(e => e.textContent.includes("Visibility"))).click()')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".visibility-view"))'), 'workspace-preserving Visibility view')
+  assert.equal(await cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim()'), 'Human review')
+  await cdp.evaluate('([...document.querySelectorAll(".fixture-picker button")].find(e => e.textContent.trim() === "Technical review")).click()')
+  await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Technical review" && Boolean(document.querySelector(".snapshot-status"))'), 'explicit workspace change')
+  assert.equal(await cdp.evaluate('document.querySelector(".header-context")?.disabled === false'), true)
+  console.log('WORKSPACE_JOURNEY_BROWSER_PASS: navigation preserves explicit workspace; explicit fixture change rebinds it')
+}
+
 async function reportBrowserProof(cdp, url, tempProfile) {
   // Only checked public-safe fixtures on the local built application. No remote traffic.
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 840, deviceScaleFactor: 1, mobile: false })
@@ -486,6 +511,7 @@ try {
   await keyboardProof(cdp, localUrl, 375, 'Attention present', 'Synthetic Alpha', 'Enter')
   await keyboardProof(cdp, localUrl, 375, 'No current run', 'no current run', 'Space')
   await attentionChoiceProof(cdp, localUrl)
+  await workspaceJourneyProof(cdp, localUrl)
   await reportBrowserProof(cdp, localUrl, profile)
   await reportUnavailableBrowserProof(cdp, localUrl)
   await snapshotDialogProof(cdp, localUrl)

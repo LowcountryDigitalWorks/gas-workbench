@@ -93,6 +93,16 @@ export function App() {
   const mainHeading = useRef<HTMLHeadingElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
   const dialogOpener = useRef<HTMLElement | null>(null)
+  function clearWorkspaceWork() {
+    setResult({})
+    setSelected(undefined)
+    setAttention(undefined)
+    setDrafts({})
+    setVisibility(undefined)
+    setTechnical(undefined)
+    setMeasurement(undefined)
+    setReport(undefined)
+  }
   useEffect(() => {
     let active = true
     loadFixture(fixture)
@@ -155,35 +165,6 @@ export function App() {
   }, [projection, fixture, reportCase])
   const w = projection?.workspace
   function navigate(next: View) {
-    if (next === 'technical' && fixture !== 'technical-review') {
-      setFixture('technical-review')
-      setResult({})
-      setSelected(undefined)
-      setAttention(undefined)
-      setTechnical(undefined)
-    }
-    if (next === 'visibility' && fixture !== 'visibility-review') {
-      setFixture('visibility-review')
-      setResult({})
-      setSelected(undefined)
-      setAttention(undefined)
-      setVisibility(undefined)
-    }
-    if (next === 'measurement' && fixture !== 'human-review') {
-      setFixture('human-review')
-      setResult({})
-      setSelected(undefined)
-      setAttention(undefined)
-      setMeasurement(undefined)
-    }
-    const expectedReportShell = reportShellFixture(reportCase)
-    if (next === 'reports' && fixture !== expectedReportShell) {
-      setFixture(expectedReportShell)
-      setResult({})
-      setSelected(undefined)
-      setAttention(undefined)
-      setReport(undefined)
-    }
     setView(next)
     requestAnimationFrame(() =>
       mainHeading.current?.focus({ preventScroll: true }),
@@ -196,9 +177,7 @@ export function App() {
   function changeFixture(next: FixtureId) {
     if (next === fixture) return
     setFixture(next)
-    setResult({})
-    setSelected(undefined)
-    setAttention(undefined)
+    clearWorkspaceWork()
     navigate('home')
   }
   function chooseReportCase(next: ReportFixtureId) {
@@ -207,9 +186,7 @@ export function App() {
     setReport(undefined)
     if (nextShell !== fixture) {
       setFixture(nextShell)
-      setResult({})
-      setSelected(undefined)
-      setAttention(undefined)
+      clearWorkspaceWork()
     }
   }
   function showContext() {
@@ -333,7 +310,7 @@ export function App() {
         ) : view === 'measurement' ? (
           <Measurement
             projection={currentMeasurement?.value}
-            error={result.error ?? currentMeasurement?.error}
+            error={result.error ?? currentMeasurement?.error ?? (fixture !== 'human-review' ? 'This measurement fixture is unavailable for the selected workspace. Choose Human review to view its compatible projection.' : undefined)}
             retrySnapshot={result.error ? () => { setResult({}); setRetry((value) => value + 1) } : undefined}
             fixture={measurementCase}
             chooseFixture={(id) => { setMeasurementCase(id); setMeasurement(undefined) }}
@@ -341,7 +318,7 @@ export function App() {
         ) : view === 'reports' ? (
           <Reports
             projection={currentReport?.value}
-            error={result.error ?? currentReport?.error}
+            error={result.error ?? currentReport?.error ?? (fixture !== reportShellFixture(reportCase) ? 'This report fixture is unavailable for the selected workspace. Choose the matching report walkthrough to view its compatible projection.' : undefined)}
             retrySnapshot={result.error ? () => { setResult({}); setRetry((value) => value + 1) } : undefined}
             fixture={reportCase}
             chooseFixture={chooseReportCase}
