@@ -488,9 +488,8 @@ try {
   await attentionChoiceProof(cdp, localUrl)
   await reportBrowserProof(cdp, localUrl, profile)
   await reportUnavailableBrowserProof(cdp, localUrl)
-  console.log('BROWSER_QA_PASS: synthetic Portfolio, Attention, and customer-safe Reports PDF/JSON plus unavailable-state Chrome proof')
   await snapshotDialogProof(cdp, localUrl)
-  console.log('BROWSER_QA_PASS: synthetic Portfolio, Attention, Reports PDF/JSON, and Snapshot dialog proof')
+  console.log('BROWSER_QA_PASS: synthetic Portfolio, Attention, Reports PDF/JSON, unavailable report state, and Snapshot dialog proof')
 } catch (error) {
   console.error('BROWSER_QA_FAIL:', error)
   process.exitCode = 1
