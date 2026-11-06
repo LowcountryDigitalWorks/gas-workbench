@@ -247,7 +247,7 @@ async function workspaceJourneyProof(cdp, url) {
     await cdp.key('Enter')
     await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Human review" && Boolean(document.querySelector(".snapshot-status"))'), 'return to Human review case')
     await pressNav('Decision')
-    const clearedDraft = await cdp.evaluate('({ noSelection: document.querySelector(".decision-view")?.textContent.includes("There is no selected review context"), rationale: document.querySelector(".decision-view textarea")?.value ?? null, oldAttention: document.querySelector(".decision-view")?.textContent.includes(' + JSON.stringify(expectedAttention) + ') })()')
+    const clearedDraft = await cdp.evaluate('(() => { const view = document.querySelector(".decision-view"); return { noSelection: view?.textContent.includes("There is no selected review context"), rationale: view?.querySelector("textarea")?.value ?? null, oldAttention: view?.textContent.includes(' + JSON.stringify(expectedAttention) + ') }; })()')
     assert.deepEqual(clearedDraft, { noSelection: true, rationale: null, oldAttention: false })
     await assertWorkspace(expectedWorkspace)
     console.log('WORKSPACE_JOURNEY_BROWSER_PASS: keyboard journey, exact case identity, ephemeral draft retention, explicit-case teardown, and focus at ' + width + 'px')
