@@ -313,6 +313,8 @@ async function reportUnavailableBrowserProof(cdp, url) {
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 840, deviceScaleFactor: 1, mobile: false })
   await cdp.send('Page.navigate', { url: url + '?qa=report-unavailable' })
   await waitFor(() => cdp.evaluate('document.querySelectorAll("button.nav-item").length === 9'), 'report unavailable test shell')
+  await cdp.evaluate('([...document.querySelectorAll(".fixture-picker button")].find(e => e.textContent.trim() === "Human review")).click()')
+  await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Human review" && Boolean(document.querySelector(".snapshot-status"))'), 'explicit unavailable-report workspace')
   async function tabTo(selector, label = '') {
     for (let attempt = 0; attempt < 130; attempt += 1) {
       await cdp.key('Tab')
