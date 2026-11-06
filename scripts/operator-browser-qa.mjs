@@ -278,20 +278,71 @@ async function reportBrowserProof(cdp, url, tempProfile) {
   console.log('REPORT_BROWSER_EXPORT_PASS: actual completed Chrome JSON downloads matched both case identities and internal appendix boundary')
 }
 
+
+async function reportUnavailableBrowserProof(cdp, url) {
+  // Force the real report-shell import to remain pending and then fail in Chrome.
+  // This proves the rendered UI cannot retain stale export actions across case
+  // changes, rather than inferring the safety property from SSR-only tests.
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 840, deviceScaleFactor: 1, mobile: false })
+  await cdp.send('Page.navigate', { url: url + '?qa=report-unavailable' })
+  await waitFor(() => cdp.evaluate('document.querySelectorAll("button.nav-item").length === 9'), 'report unavailable test shell')
+  async function tabTo(selector, label = '') {
+    for (let attempt = 0; attempt < 130; attempt += 1) {
+      await cdp.key('Tab')
+      if (await cdp.evaluate('(() => { const el = document.activeElement; return el?.matches(' + JSON.stringify(selector) + ') && el?.textContent.includes(' + JSON.stringify(label) + '); })()')) return
+    }
+    throw new Error('Keyboard could not reach unavailable-report control ' + selector + ' / ' + label)
+  }
+  await tabTo('.nav-item', 'Reports')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".report-controls"))'), 'ready report before guarded case change')
+
+  let pausedRequest
+  const detach = cdp.on('Fetch.requestPaused', params => {
+    if (params.request?.url.includes('report-internal')) pausedRequest = params
+  })
+  await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*report-internal*', requestStage: 'Request' }] })
+  try {
+    await tabTo('.report-heading select')
+    await cdp.key('End')
+    const paused = await waitFor(() => pausedRequest, 'real report-internal fixture import paused by Chrome')
+    assert.ok(paused.request.url.startsWith(url), 'Intercept only synthetic loopback report fixture')
+    const pending = await waitFor(() => cdp.evaluate('(() => { const status = document.querySelector(".report-view .error-state[role=status]"); return status?.textContent.includes("Checking report projection") && !document.querySelector(".report-controls") && !document.querySelector(".report-paper") && !document.querySelector(".report-internal"); })()'), 'pending report without exports or stale content')
+    assert.equal(pending, true)
+    await cdp.send('Fetch.failRequest', { requestId: paused.requestId, errorReason: 'Failed' })
+    const errored = await waitFor(() => cdp.evaluate('(() => { const alert = document.querySelector(".report-view .error-state[role=alert]"); return alert?.textContent.includes("Reports unavailable") && !document.querySelector(".report-controls") && !document.querySelector(".report-paper") && !document.querySelector(".report-internal"); })()'), 'rejected report without exports or stale content')
+    assert.equal(errored, true)
+    console.log('REPORT_BROWSER_UNAVAILABLE_PASS: actual Chrome pending import and rejected import expose no report body, internal appendix, print or download')
+  } finally {
+    await cdp.send('Fetch.disable')
+    detach()
+  }
+}
+
 class DevTools {
   constructor(url) {
     this.ws = new WebSocket(url)
     this.seq = 0
     this.pending = new Map()
+    this.events = new Map()
     this.ws.addEventListener('message', event => {
       const message = JSON.parse(event.data)
-      if (message.id === undefined) return
+      if (message.id === undefined) {
+        for (const listener of this.events.get(message.method) ?? []) listener(message.params)
+        return
+      }
       const pending = this.pending.get(message.id)
       if (!pending) return
       this.pending.delete(message.id)
       if (message.error) pending.reject(new Error(JSON.stringify(message.error)))
       else pending.resolve(message.result)
     })
+  }
+  on(method, listener) {
+    const listeners = this.events.get(method) ?? new Set()
+    listeners.add(listener)
+    this.events.set(method, listeners)
+    return () => listeners.delete(listener)
   }
   async connect() {
     await new Promise((resolve, reject) => {
@@ -370,7 +421,8 @@ try {
   await keyboardProof(cdp, localUrl, 375, 'No current run', 'no current run', 'Space')
   await attentionChoiceProof(cdp, localUrl)
   await reportBrowserProof(cdp, localUrl, profile)
-  console.log('BROWSER_QA_PASS: synthetic Portfolio, Attention, and customer-safe Reports PDF/JSON proof')
+  await reportUnavailableBrowserProof(cdp, localUrl)
+  console.log('BROWSER_QA_PASS: synthetic Portfolio, Attention, and customer-safe Reports PDF/JSON plus unavailable-state Chrome proof')
 } catch (error) {
   console.error('BROWSER_QA_FAIL:', error)
   process.exitCode = 1
