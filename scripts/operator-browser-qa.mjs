@@ -171,6 +171,8 @@ async function workspaceJourneyProof(cdp, url) {
       assert.ok(focus.width >= 3, 'navigation focus outline must be at least 3px')
       if (width === 375) assert.ok(focus.viewport >= width - 20 && focus.viewport <= width, 'narrow layout must fit the viewport')
       await cdp.key('Enter')
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      console.log('NAV_FOCUS_DIAGNOSTIC: ' + JSON.stringify(await cdp.evaluate('(() => ({ activeTag: document.activeElement?.tagName, activeClass: document.activeElement?.className, activeText: document.activeElement?.textContent?.trim().slice(0, 80), currentNav: document.querySelector(".nav-item[aria-current=page]")?.textContent?.trim().slice(0, 80), heading: document.querySelector("main h1")?.textContent?.trim(), breadcrumb: document.querySelector("main .breadcrumb")?.textContent?.trim() }))()')))
       await waitFor(() => cdp.evaluate('document.activeElement?.tagName === "H1"'), 'focus moves to ' + label + ' heading')
     }
     async function assertWorkspace(expected) {
