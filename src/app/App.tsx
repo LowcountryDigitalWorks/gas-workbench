@@ -1,6 +1,6 @@
 import { registeredModules } from './moduleRegistry'
 import { currentFeatureLoad, type FeatureLoad } from './featureLoad'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { WorkbenchProjection } from '../engine/projection'
 import { Badge, Facts, Icon } from '../design-system/primitives'
 import { siteName, timestamp } from '../design-system/format'
@@ -91,8 +91,14 @@ export function App() {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({})
   const draftKey = `${fixture}:${attention ?? ''}`
   const mainHeading = useRef<HTMLHeadingElement>(null)
+  const previousView = useRef(view)
   const dialog = useRef<HTMLDialogElement>(null)
   const dialogOpener = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    if (previousView.current === view) return
+    previousView.current = view
+    mainHeading.current?.focus({ preventScroll: true })
+  }, [view])
   function clearWorkspaceWork() {
     setResult({})
     setSelected(undefined)
@@ -166,9 +172,6 @@ export function App() {
   const w = projection?.workspace
   function navigate(next: View) {
     setView(next)
-    requestAnimationFrame(() =>
-      mainHeading.current?.focus({ preventScroll: true }),
-    )
   }
   function inspect(moduleId?: string) {
     setSelected(moduleId ?? w?.sourceManifest[0]?.moduleId)

@@ -153,6 +153,7 @@ async function workspaceJourneyProof(cdp, url) {
     await cdp.send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false })
     await cdp.send('Page.navigate', { url: url + '?qa=workspace-journey&width=' + width })
     await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5'), 'workspace journey shell at ' + width)
+    assert.equal(await cdp.evaluate('document.activeElement?.tagName'), 'BODY', 'initial render must not steal keyboard focus')
 
     async function tabTo(selector, textPart = '') {
       for (let index = 0; index < 140; index += 1) {
@@ -170,6 +171,8 @@ async function workspaceJourneyProof(cdp, url) {
       assert.ok(focus.width >= 3, 'navigation focus outline must be at least 3px')
       if (width === 375) assert.ok(focus.viewport >= width - 20 && focus.viewport <= width, 'narrow layout must fit the viewport')
       await cdp.key('Enter')
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      console.log('NAV_FOCUS_DIAGNOSTIC: ' + JSON.stringify(await cdp.evaluate('(() => ({ activeTag: document.activeElement?.tagName, activeClass: document.activeElement?.className, activeText: document.activeElement?.textContent?.trim().slice(0, 80), currentNav: document.querySelector(".nav-item[aria-current=page]")?.textContent?.trim().slice(0, 80), heading: document.querySelector("main h1")?.textContent?.trim(), breadcrumb: document.querySelector("main .breadcrumb")?.textContent?.trim() }))()')))
       await waitFor(() => cdp.evaluate('document.activeElement?.tagName === "H1"'), 'focus moves to ' + label + ' heading')
     }
     async function assertWorkspace(expected) {
@@ -177,8 +180,10 @@ async function workspaceJourneyProof(cdp, url) {
       await cdp.key('Enter')
       await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === true'), 'snapshot details dialog')
       assert.equal(await cdp.evaluate('document.querySelector("dialog")?.textContent.includes(' + JSON.stringify(expected) + ')'), true, 'exact workspace identity')
+      const closeArmed = await cdp.evaluate('(() => { const element = document.querySelector("dialog"); if (!element) return false; element.dataset.qaCloseSeen = "false"; element.addEventListener("close", () => { element.dataset.qaCloseSeen = "true" }, { once: true }); return true; })()')
+      assert.equal(closeArmed, true, 'dialog close event must be observed before proceeding')
       await cdp.key('Escape')
-      await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === false'), 'snapshot details closes')
+      await waitFor(() => cdp.evaluate('(() => { const element = document.querySelector("dialog"); return element?.open === false && element.dataset.qaCloseSeen === "true" && document.activeElement === document.querySelector(".header-context") })()'), 'snapshot details close event and focus returned to its opener')
     }
 
     await tabTo('.fixture-picker button', 'Human review')
