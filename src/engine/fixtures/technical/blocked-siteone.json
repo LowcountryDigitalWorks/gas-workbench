@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "ldw.gas-workbench-technical.v1",
+  "schemaMinorVersion": 0,
+  "identity": {
+    "workspaceId": "workspace:technical-demo",
+    "tenantId": "tenant:synthetic-ldw",
+    "siteId": "site:harbor-demo",
+    "siteScopeRevisionId": "scope:technical-demo",
+    "trustedTarget": "https://harbor-demo.example",
+    "generatedAt": "2026-11-01T12:00:00Z",
+    "evaluatedAt": "2026-11-01T12:00:00Z"
+  },
+  "collections": [
+    {
+      "id": "collection:siteone-blocked",
+      "provider": "siteone",
+      "sourceSchema": "ldw.website-quality/v1.3",
+      "adapterMapping": "3.0.0",
+      "method": "wqt_normalized",
+      "target": "https://harbor-demo.example",
+      "sourcePeriod": {
+        "start": "2026-10-29",
+        "end": "2026-11-01"
+      },
+      "availability": "unavailable",
+      "completeness": "unknown",
+      "reasons": [
+        "Synthetic SiteOne root HTTP 403 challenge: no usable homepage crawl; scanner-native scores are not accepted observations."
+      ],
+      "observations": []
+    },
+    {
+      "id": "collection:lighthouse-homepage",
+      "provider": "lighthouse",
+      "sourceSchema": "ldw.website-quality/v1.3",
+      "adapterMapping": "3.0.0",
+      "method": "wqt_normalized",
+      "target": "https://harbor-demo.example",
+      "sourcePeriod": {
+        "start": "2026-10-29",
+        "end": "2026-11-01"
+      },
+      "availability": "ready",
+      "completeness": "complete",
+      "reasons": [],
+      "observations": [
+        {
+          "id": "observation:lighthouse-homepage-performance",
+          "code": "homepage-desktop-lab-performance",
+          "value": 78
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "A blocked SiteOne root is unavailable source coverage, not a measured site failure, score, or observed zero.",
+    "Lighthouse is separate homepage desktop lab evidence; it cannot stand in for SiteOne whole-site crawl coverage.",
+    "Synthetic public-safe example only; no provider or customer data were retrieved."
+  ]
+}
