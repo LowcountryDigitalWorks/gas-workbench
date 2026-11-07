@@ -180,8 +180,10 @@ async function workspaceJourneyProof(cdp, url) {
       await cdp.key('Enter')
       await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === true'), 'snapshot details dialog')
       assert.equal(await cdp.evaluate('document.querySelector("dialog")?.textContent.includes(' + JSON.stringify(expected) + ')'), true, 'exact workspace identity')
+      const closeArmed = await cdp.evaluate('(() => { const element = document.querySelector("dialog"); if (!element) return false; element.dataset.qaCloseSeen = "false"; element.addEventListener("close", () => { element.dataset.qaCloseSeen = "true" }, { once: true }); return true; })()')
+      assert.equal(closeArmed, true, 'dialog close event must be observed before proceeding')
       await cdp.key('Escape')
-      await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === false'), 'snapshot details closes')
+      await waitFor(() => cdp.evaluate('(() => { const element = document.querySelector("dialog"); return element?.open === false && element.dataset.qaCloseSeen === "true" && document.activeElement === document.querySelector(".header-context") })()'), 'snapshot details close event and focus returned to its opener')
     }
 
     await tabTo('.fixture-picker button', 'Human review')
