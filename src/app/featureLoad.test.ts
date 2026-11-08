@@ -1,5 +1,5 @@
 ﻿import { describe, expect, it } from 'vitest'
-import { currentFeatureLoad, type FeatureLoad } from './featureLoad'
+import { currentFeatureLoad, keepsCurrentViewOnFixtureChange, technicalShellAllowsLoad, technicalShellInstruction, type FeatureLoad } from './featureLoad'
 
 interface FakeShell { readonly workspaceId: string }
 type CaseId = 'ready' | 'limited'
@@ -14,6 +14,17 @@ describe('feature loading is scoped to the selected case and decoded shell', () 
     expect(currentFeatureLoad(result, 'limited', shell)).toBeUndefined()
     expect(currentFeatureLoad(result, 'ready', { ...shell })).toBeUndefined()
     expect(currentFeatureLoad(result, 'ready', undefined)).toBeUndefined()
+  })
+
+  it('loads Technical only for the Technical review shell and keeps that view', () => {
+    expect(technicalShellAllowsLoad('quiet')).toBe(false)
+    expect(technicalShellAllowsLoad('technical-review')).toBe(true)
+    expect(technicalShellInstruction).toContain('Choose Technical review')
+    expect(technicalShellInstruction).not.toContain('identities do not match')
+    expect(keepsCurrentViewOnFixtureChange('technical', 'technical-review')).toBe(true)
+    expect(keepsCurrentViewOnFixtureChange('technical', 'quiet')).toBe(false)
+    expect(keepsCurrentViewOnFixtureChange('home', 'technical-review')).toBe(false)
+    expect(keepsCurrentViewOnFixtureChange('evidence', 'technical-review')).toBe(false)
   })
 
   it('does not display errors from a previous selection or shell', () => {
