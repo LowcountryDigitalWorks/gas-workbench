@@ -28,10 +28,11 @@ export const technicalShellInstruction =
   'This technical walkthrough is unavailable for the selected workspace. Choose Technical review to view its compatible projection.'
 
 /**
- * Outer fixture changes return Home, except correcting into Technical review
- * while Technical is already open. That stay still requires the caller to clear
- * prior selections and drafts.
+ * Outer fixture changes return Home, except the two explicit recoveries:
+ * Technical already open and choosing Technical review, or Measure already
+ * open and choosing Human review. The caller still clears selections and drafts.
  */
 export function keepsCurrentViewOnFixtureChange(view: string, nextShellFixture: string): boolean {
-  return view === 'technical' && technicalShellAllowsLoad(nextShellFixture)
+  return (view === 'technical' && nextShellFixture === 'technical-review')
+    || (view === 'measurement' && nextShellFixture === 'human-review')
 }

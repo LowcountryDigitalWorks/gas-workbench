@@ -250,6 +250,46 @@ async function reportCaseDraftDiscardProof(cdp, url) {
   console.log('DRAFT_LIFETIME_BROWSER_PASS: same-snapshot draft kept; report walkthrough snapshot switch discards it at 375px')
 }
 
+async function measureShellEntryProof(cdp, url) {
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: 1, mobile: false })
+  await cdp.send('Page.navigate', { url: url + '?qa=measure-shell' })
+  await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5'), 'Quiet shell for Measure entry')
+  async function tabTo(selector, textPart = '') {
+    for (let index = 0; index < 140; index += 1) {
+      await cdp.key('Tab')
+      const match = await cdp.evaluate('(() => { const e = document.activeElement; return e?.matches(' + JSON.stringify(selector) + ') && e?.textContent.includes(' + JSON.stringify(textPart) + '); })()')
+      if (match) return
+    }
+    throw new Error('Keyboard Tab could not reach ' + selector + ' / ' + textPart + ' for Measure entry')
+  }
+  async function pressNav(label) {
+    await tabTo('.nav-item', label)
+    const focus = await cdp.evaluate('(() => { const s = getComputedStyle(document.activeElement); return { outline: s.outlineStyle, width: parseFloat(s.outlineWidth), viewport: document.documentElement.clientWidth }; })()')
+    assert.notEqual(focus.outline, 'none')
+    assert.ok(focus.width >= 3)
+    assert.ok(focus.viewport >= 355 && focus.viewport <= 375)
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('document.activeElement?.tagName === "H1"'), 'focus moves to ' + label + ' heading')
+  }
+  await pressNav('Measure / Outcomes')
+  await waitFor(() => cdp.evaluate('document.querySelector(".measurement-view .error-state[role=alert]")?.textContent.includes("Choose Human review")'), 'Quiet shell Measure instruction')
+  assert.equal(await cdp.evaluate('document.querySelector("main h1")?.textContent.trim()'), 'Measure / Outcomes')
+  assert.equal(await cdp.evaluate('Boolean(document.querySelector(".measurement-card"))'), false)
+  await tabTo('.fixture-picker button', 'Human review')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("main h1")?.textContent.trim() === "Measure / Outcomes" && document.querySelector(".measurement-view")?.textContent.includes("Follow-up measurement is not due.") && !document.querySelector(".measurement-view")?.textContent.includes("Choose Human review")'), 'Human review stays on Measure with compatible evidence')
+  await tabTo('.header-context', 'Snapshot details')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === true && document.querySelector("dialog")?.textContent.includes("workspace:synthetic-human-review-001")'), 'Measure human-review snapshot')
+  await cdp.key('Escape')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === false'), 'Measure snapshot closed')
+  await tabTo('.fixture-picker button', 'Quiet')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("main h1")?.textContent.trim() === "Current state" && document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Quiet"'), 'Quiet from Measure returns Home')
+  assert.equal(await cdp.evaluate('!document.querySelector(".measurement-card") && !document.querySelector(".attention-list [aria-pressed=true]") && !document.querySelector(".decision-view textarea")'), true)
+  console.log('MEASURE_SHELL_ENTRY_PASS: Quiet instruction, Human review stays on Measure, Quiet returns Home at 375px')
+}
+
 async function workspaceJourneyProof(cdp, url) {
   async function runAtWidth(width) {
     const expectedWorkspace = 'workspace:synthetic-human-review-001'
@@ -710,6 +750,7 @@ try {
   await cdp.send('Runtime.enable')
   await technicalShellEntryProof(cdp, localUrl)
   await reportCaseDraftDiscardProof(cdp, localUrl)
+  await measureShellEntryProof(cdp, localUrl)
   await keyboardProof(cdp, localUrl, 375, 'Attention present', 'Synthetic Alpha', 'Enter')
   await keyboardProof(cdp, localUrl, 375, 'No current run', 'no current run', 'Space')
   await attentionChoiceProof(cdp, localUrl)
