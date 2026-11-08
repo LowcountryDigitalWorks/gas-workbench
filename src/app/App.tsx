@@ -1,5 +1,5 @@
 import { registeredModules } from './moduleRegistry'
-import { currentFeatureLoad, type FeatureLoad } from './featureLoad'
+import { currentFeatureLoad, keepsCurrentViewOnFixtureChange, technicalShellAllowsLoad, technicalShellInstruction, type FeatureLoad } from './featureLoad'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { WorkbenchProjection } from '../engine/projection'
 import { Badge, Facts, Icon } from '../design-system/primitives'
@@ -144,11 +144,11 @@ export function App() {
     return () => { active = false }
   }, [projection, visibilityCase])
   useEffect(() => {
-    if (!projection) return
+    if (!projection || !technicalShellAllowsLoad(fixture)) return
     let active = true
     loadTechnicalFixture(technicalCase, projection).then((value) => { if (active) setTechnical({ fixture: technicalCase, source: projection, value }) }).catch((error) => { if (active) setTechnical({ fixture: technicalCase, source: projection, error: error instanceof Error ? error.message : 'Technical projection unavailable.' }) })
     return () => { active = false }
-  }, [projection, technicalCase])
+  }, [projection, fixture, technicalCase])
   useEffect(() => {
     if (!projection || fixture !== 'human-review') return
     let active = true
@@ -179,9 +179,10 @@ export function App() {
   }
   function changeFixture(next: FixtureId) {
     if (next === fixture) return
+    const stay = keepsCurrentViewOnFixtureChange(view, next)
     setFixture(next)
     clearWorkspaceWork()
-    navigate('home')
+    if (!stay) navigate('home')
   }
   function chooseReportCase(next: ReportFixtureId) {
     const nextShell = reportShellFixture(next)
@@ -382,7 +383,7 @@ export function App() {
             {view === 'technical' && (
               <Technical
                 projection={currentTechnical?.value}
-                error={currentTechnical?.error}
+                error={result.error ?? currentTechnical?.error ?? (technicalShellAllowsLoad(fixture) ? undefined : technicalShellInstruction)}
                 shell={projection}
                 fixture={technicalCase}
                 chooseFixture={(id) => { setTechnicalCase(id); setTechnical(undefined) }}

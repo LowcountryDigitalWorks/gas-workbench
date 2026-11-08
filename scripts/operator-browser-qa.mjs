@@ -145,6 +145,51 @@ async function attentionChoiceProof(cdp, url) {
   console.log('ATTENTION_LINKED_EVIDENCE_PASS: explicit Evidence-to-Attention navigation binds only exact referenced item')
 }
 
+async function technicalShellEntryProof(cdp, url) {
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: 1, mobile: false })
+  await cdp.send('Page.navigate', { url: url + '?qa=technical-shell' })
+  await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5'), 'Quiet shell for Technical entry')
+  assert.equal(await cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim()'), 'Quiet')
+  async function tabTo(selector, textPart = '') {
+    for (let index = 0; index < 140; index += 1) {
+      await cdp.key('Tab')
+      const match = await cdp.evaluate('(() => { const e = document.activeElement; return e?.matches(' + JSON.stringify(selector) + ') && e?.textContent.includes(' + JSON.stringify(textPart) + '); })()')
+      if (match) return
+    }
+    throw new Error('Keyboard Tab could not reach ' + selector + ' / ' + textPart + ' for Technical entry')
+  }
+  async function pressNav(label) {
+    await tabTo('.nav-item', label)
+    const focus = await cdp.evaluate('(() => { const s = getComputedStyle(document.activeElement); return { outline: s.outlineStyle, width: parseFloat(s.outlineWidth), viewport: document.documentElement.clientWidth }; })()')
+    assert.notEqual(focus.outline, 'none', 'Technical entry navigation focus must remain visible')
+    assert.ok(focus.width >= 3, 'Technical entry navigation focus outline must be at least 3px')
+    assert.ok(focus.viewport >= 355 && focus.viewport <= 375, 'Technical entry must fit a 375px viewport')
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('document.activeElement?.tagName === "H1"'), 'focus moves to ' + label + ' heading')
+  }
+  await pressNav('Technical')
+  await waitFor(() => cdp.evaluate('document.querySelector(".technical-view .error-state[role=alert]")?.textContent.includes("Choose Technical review")'), 'Quiet shell Technical instruction')
+  assert.equal(await cdp.evaluate('document.querySelector("main h1")?.textContent.trim()'), 'Technical evidence')
+  assert.equal(await cdp.evaluate('document.body.textContent.includes("identities do not match")'), false)
+  assert.equal(await cdp.evaluate('document.body.textContent.includes("observation:siteone-title")'), false)
+  await tabTo('.fixture-picker button', 'Technical review')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Technical review" && document.querySelector(".technical-view")?.textContent.includes("observation:siteone-title") && document.querySelector("main h1")?.textContent.trim() === "Technical evidence"'), 'Technical review stays on Technical and shows SiteOne evidence')
+  assert.equal(await cdp.evaluate('document.body.textContent.includes("identities do not match")'), false)
+  assert.equal(await cdp.evaluate('document.querySelector(".technical-view")?.textContent.includes("SiteOne")'), true)
+  await tabTo('.header-context', 'Snapshot details')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === true'), 'Technical review snapshot')
+  assert.equal(await cdp.evaluate('document.querySelector("dialog")?.textContent.includes("workspace:technical-demo")'), true)
+  await cdp.key('Escape')
+  await waitFor(() => cdp.evaluate('document.querySelector("dialog")?.open === false'), 'Technical review snapshot closed')
+  await tabTo('.fixture-picker button', 'Quiet')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector("main h1")?.textContent.trim() === "Current state" && document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Quiet"'), 'other fixture switch still returns Home')
+  assert.equal(await cdp.evaluate('document.body.textContent.includes("observation:siteone-title")'), false)
+  console.log('TECHNICAL_SHELL_ENTRY_PASS: Quiet instruction, Technical review stays in view, SiteOne evidence, and Home return at 375px')
+}
+
 async function workspaceJourneyProof(cdp, url) {
   async function runAtWidth(width) {
     const expectedWorkspace = 'workspace:synthetic-human-review-001'
@@ -603,6 +648,7 @@ try {
   await cdp.connect()
   await cdp.send('Page.enable')
   await cdp.send('Runtime.enable')
+  await technicalShellEntryProof(cdp, localUrl)
   await keyboardProof(cdp, localUrl, 375, 'Attention present', 'Synthetic Alpha', 'Enter')
   await keyboardProof(cdp, localUrl, 375, 'No current run', 'no current run', 'Space')
   await attentionChoiceProof(cdp, localUrl)
