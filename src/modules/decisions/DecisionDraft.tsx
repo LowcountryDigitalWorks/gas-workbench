@@ -142,8 +142,10 @@ export function DecisionDraft({
               aria-invalid={!!error}
             />
             <p id={`${fieldId}-help`} className="muted">
-              1–2,000 characters. Stays in this tab until downloaded; no engine
-              write or submission.
+              1–2,000 characters. Local to this tab and the selected snapshot.
+              Switching fixture, or a report walkthrough that opens a new
+              snapshot, discards it. Navigation in the same snapshot keeps it.
+              No engine write or submission.
             </p>
             {error && (
               <p id={`${fieldId}-error`} role="alert" className="form-error">

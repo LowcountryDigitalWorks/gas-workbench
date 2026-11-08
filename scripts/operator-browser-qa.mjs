@@ -190,6 +190,66 @@ async function technicalShellEntryProof(cdp, url) {
   console.log('TECHNICAL_SHELL_ENTRY_PASS: Quiet instruction, Technical review stays in view, SiteOne evidence, and Home return at 375px')
 }
 
+async function reportCaseDraftDiscardProof(cdp, url) {
+  const rationale = 'Synthetic report-case draft; not recorded.'
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: 1, mobile: false })
+  await cdp.send('Page.navigate', { url: url + '?qa=draft-lifetime' })
+  await waitFor(() => cdp.evaluate('document.querySelectorAll(".fixture-picker button").length === 5'), 'draft lifetime shell')
+  async function tabTo(selector, textPart = '') {
+    for (let index = 0; index < 140; index += 1) {
+      await cdp.key('Tab')
+      const match = await cdp.evaluate('(() => { const e = document.activeElement; return e?.matches(' + JSON.stringify(selector) + ') && e?.textContent.includes(' + JSON.stringify(textPart) + '); })()')
+      if (match) return
+    }
+    throw new Error('Keyboard Tab could not reach ' + selector + ' / ' + textPart + ' for draft lifetime')
+  }
+  async function pressNav(label) {
+    await tabTo('.nav-item', label)
+    const focus = await cdp.evaluate('(() => { const s = getComputedStyle(document.activeElement); return { outline: s.outlineStyle, width: parseFloat(s.outlineWidth), viewport: document.documentElement.clientWidth }; })()')
+    assert.notEqual(focus.outline, 'none')
+    assert.ok(focus.width >= 3)
+    assert.ok(focus.viewport >= 355 && focus.viewport <= 375)
+    await cdp.key('Enter')
+    await waitFor(() => cdp.evaluate('document.activeElement?.tagName === "H1"'), 'focus moves to ' + label + ' heading')
+  }
+  await tabTo('.fixture-picker button', 'Human review')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('document.querySelector(".fixture-picker button[aria-pressed=true]")?.textContent.trim() === "Human review"'), 'Human review for draft lifetime')
+  assert.equal(await cdp.evaluate('document.querySelector(".fixture-picker small")?.textContent.includes("selected snapshot") && document.querySelector(".fixture-picker small")?.textContent.includes("discards") && !document.querySelector(".fixture-picker small")?.textContent.includes("drafts stay in this tab")'), true)
+  await pressNav('Evidence')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".source-inspector"))'), 'draft lifetime evidence')
+  await tabTo('.source-row', 'Page Focus')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".linked-context button"))'), 'draft lifetime linked attention')
+  await tabTo('.linked-context button', 'Open linked Attention')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".attention-detail button.primary"))'), 'draft lifetime attention detail')
+  await tabTo('.attention-detail button.primary', 'Prepare decision draft')
+  await cdp.key('Enter')
+  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".decision-view textarea"))'), 'draft lifetime textarea')
+  const help = await cdp.evaluate('document.querySelector(".decision-view textarea")?.getAttribute("aria-describedby") ? document.getElementById(document.querySelector(".decision-view textarea").getAttribute("aria-describedby").split(" ")[0])?.textContent : ""')
+  assert.equal(help.includes('selected snapshot') && help.includes('discards') && !help.includes('until downloaded'), true)
+  await tabTo('.decision-view textarea', '')
+  await cdp.send('Input.insertText', { text: rationale })
+  assert.equal(await cdp.evaluate('document.querySelector(".decision-view textarea")?.value'), rationale)
+  await pressNav('Home')
+  await pressNav('Decision')
+  await waitFor(() => cdp.evaluate('document.querySelector(".decision-view textarea")?.value === ' + JSON.stringify(rationale)), 'same-snapshot navigation keeps the draft')
+  await pressNav('Reports')
+  await waitFor(() => cdp.evaluate('document.querySelector(".report-heading select")?.selectedOptions[0]?.textContent.includes("Focused evidence report")'), 'default report walkthrough')
+  await tabTo('.report-heading select', 'Focused evidence report')
+  const arrow = { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40, nativeVirtualKeyCode: 40 }
+  await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', ...arrow })
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...arrow })
+  // Headless Chrome updates the focused <select> without the change event React listens for.
+  await cdp.evaluate('(() => { const select = document.activeElement; if (!select || select.tagName !== "SELECT") return; const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set; set.call(select, "decision-outcome"); select.dispatchEvent(new Event("input", { bubbles: true })); select.dispatchEvent(new Event("change", { bubbles: true })); })()')
+  await waitFor(() => cdp.evaluate('document.querySelector(".report-paper h3")?.textContent === "Harbor Demo — Decision and Outcome Report" && ![...document.querySelectorAll(".fixture-picker button")].some(button => button.getAttribute("aria-pressed") === "true")'), 'report walkthrough opened the outcome snapshot')
+  await pressNav('Decision')
+  const cleared = await cdp.evaluate('(() => { const view = document.querySelector(".decision-view"); return { noSelection: view?.textContent.includes("There is no selected review context"), rationale: view?.querySelector("textarea")?.value ?? null, oldText: view?.textContent.includes(' + JSON.stringify(rationale) + ') }; })()')
+  assert.deepEqual(cleared, { noSelection: true, rationale: null, oldText: false })
+  console.log('DRAFT_LIFETIME_BROWSER_PASS: same-snapshot draft kept; report walkthrough snapshot switch discards it at 375px')
+}
+
 async function workspaceJourneyProof(cdp, url) {
   async function runAtWidth(width) {
     const expectedWorkspace = 'workspace:synthetic-human-review-001'
@@ -649,6 +709,7 @@ try {
   await cdp.send('Page.enable')
   await cdp.send('Runtime.enable')
   await technicalShellEntryProof(cdp, localUrl)
+  await reportCaseDraftDiscardProof(cdp, localUrl)
   await keyboardProof(cdp, localUrl, 375, 'Attention present', 'Synthetic Alpha', 'Enter')
   await keyboardProof(cdp, localUrl, 375, 'No current run', 'no current run', 'Space')
   await attentionChoiceProof(cdp, localUrl)

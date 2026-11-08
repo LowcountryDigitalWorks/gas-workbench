@@ -306,7 +306,7 @@ export function App() {
                 </button>
               ))}
             </div>
-            <small>Public-safe examples • drafts stay in this tab</small>
+            <small>Public-safe examples. A draft stays in this tab only for the selected snapshot. Switching fixture, or a report walkthrough that opens a new snapshot, discards it.</small>
           </fieldset>}
         </header>
         {view === 'portfolio' ? (
