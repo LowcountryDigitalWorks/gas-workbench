@@ -1,12 +1,12 @@
 # G.A.S. Workbench Architecture
 
-**Status:** Accepted synthetic/public-safe modular-monolith operator surface through [PR #45](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/45). Live GitHub, source and current issue/PR state override this historical summary. The app is not a deployed provider-connected or customer-authorized service.
+**Status:** Accepted synthetic/public-safe modular-monolith operator surface through [PR #61](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/61) (main `629a0107ac9b41e8d5073e4c28b101a1ca35016a`; [post-merge CI](https://github.com/LowcountryDigitalWorks/gas-workbench/actions/runs/42359431641) SUCCESS). Live GitHub, source and current issue/PR state override this snapshot. The app is not a deployed provider-connected or customer-authorized service.
 
 ## Purpose and repository boundary
 
 Workbench is the operator interaction layer for accepted G.A.S. intelligence. It presents evidence and limits clearly, supports deliberate human review/decisions and bounded reporting, and avoids a dense generic admin dashboard.
 
-- **`gas-engine` is authoritative:** evidence meaning, provenance, source readiness, missingness, comparison/comparability, Attention, human recommendation/decision lifecycle, measurement/outcomes and allowed claim ceilings. Accepted semantic baseline: Release 0.24.
+- **`gas-engine` is authoritative:** evidence meaning, provenance, source readiness, missingness, comparison/comparability, Attention, human recommendation/decision lifecycle, measurement/outcomes and allowed claim ceilings. Accepted package baseline: **Release 0.25.0**, including a separately scoped **offline-only** WQT DomScan DNS/agent-readiness adapter. Workbench's checked synthetic feature projections do **not** consume that sidecar or gain provider/live-site access from this engine acceptance.
 - **`gas-workbench` is presentation authority:** command-center shell, module navigation, interaction, focus/accessibility/reflow, local draft experience and strict presentation of checked supplied projections.
 - **Provider tools and WQT remain upstream:** no direct provider queries, crawler/technical audit clone, rank/keyword collection, generic content generation or provider SDK in feature components.
 
@@ -28,7 +28,7 @@ Modules stay as feature directories in this one repository. Extract a package on
 Registered destinations are **Home, Visibility, Technical, Evidence, Attention, Decision, Measure / Outcomes, Reports, and Sites / Portfolio**. The intended product journey is source/state inspection → unranked Attention → human decision → measurement/interpretation limits → customer-safe reporting, with internal portfolio context when relevant.
 
 - **Visibility** keeps organic search and AI source-native universes separate, including provenance, coverage, comparability and missingness.
-- **Technical** presents accepted WQT/longitudinal/discovery observations without becoming a scanner or auto-remediator.
+- **Technical** presents accepted WQT/longitudinal/discovery observations without becoming a scanner or auto-remediator. The accepted [PR #61](https://github.com/LowcountryDigitalWorks/gas-workbench/pull/61) synthetic walkthrough explicitly separates blocked SiteOne crawl coverage from independently available Lighthouse homepage data; it does **not** claim overall website health.
 - **Measure / Outcomes** distinguishes supplied factual measurement/readiness, accepted interpretation/claim ceilings and separately recorded human outcomes.
 - **Reports** separates customer-safe preview/export from internal evidence and prohibited overclaims.
 - **Sites / Portfolio** is LDW-internal and preserves tenant/site/scope isolation; it does not invent cross-customer ranking or readiness scores.
