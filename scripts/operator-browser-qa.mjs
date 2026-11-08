@@ -225,14 +225,42 @@ async function reportCaseDraftDiscardProof(cdp, url) {
   await tabTo('.linked-context button', 'Open linked Attention')
   await cdp.key('Enter')
   try {
-  await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".attention-detail button.primary"))'), 'draft lifetime attention detail')
+    await waitFor(() => cdp.evaluate('Boolean(document.querySelector(".attention-detail button.primary"))'), 'draft lifetime attention detail')
   } catch (error) {
     // Preserve the real keyboard/selection failure. Only capture finite, allowlisted
     // synthetic UI state, never page text, input values, URLs or arbitrary DOM.
     if (!(error instanceof Error) || error.message !== 'Timed out: draft lifetime attention detail') throw error
     let snapshot = null
     try {
-      snapshot = await cdp.evaluate("(() => {\n  const focus = document.activeElement;\n  const views = {\n    home: '.home-view',\n    visibility: '.visibility-view',\n    technical: '.technical-view',\n    evidence: '.evidence-layout',\n    attention: '.attention-view',\n    decisions: '.decision-view',\n    measurement: '.measurement-view',\n    reports: '.reports-view',\n    portfolio: '.portfolio-view',\n  };\n  const view = Object.entries(views).find(([, selector]) => document.querySelector(selector))?.[0] ?? 'unknown';\n  return {\n    view,\n    viewport: window.innerWidth,\n    focusTag: focus?.tagName ?? 'OTHER',\n    focusIsLinkedButton: focus?.matches('.linked-context button') === true,\n    focusIsAttentionButton: focus?.matches('.attention-list .source-row') === true,\n    linkedButtonPresent: Boolean(document.querySelector('.linked-context button')),\n    sourceInspectorPresent: Boolean(document.querySelector('.source-inspector')),\n    attentionListPresent: Boolean(document.querySelector('.attention-list')),\n    attentionDetailPresent: Boolean(document.querySelector('.attention-detail')),\n    draftButtonPresent: Boolean(document.querySelector('.attention-detail button.primary')),\n    selectedPressedCount: document.querySelectorAll('.attention-list [aria-pressed=\"true\"]').length,\n    expectedSyntheticAttentionSelected: document.querySelector('.attention-list [aria-pressed=\"true\"] code')?.textContent === 'attention:evidence-diff:page-title',\n  };\n})()")
+      snapshot = await cdp.evaluate(`(() => {
+  const focus = document.activeElement;
+  const views = {
+    home: '.home-view',
+    visibility: '.visibility-view',
+    technical: '.technical-view',
+    evidence: '.evidence-layout',
+    attention: '.attention-view',
+    decisions: '.decision-view',
+    measurement: '.measurement-view',
+    reports: '.reports-view',
+    portfolio: '.portfolio-view',
+  };
+  const view = Object.entries(views).find(([, selector]) => document.querySelector(selector))?.[0] ?? 'unknown';
+  return {
+    view,
+    viewport: window.innerWidth,
+    focusTag: focus?.tagName ?? 'OTHER',
+    focusIsLinkedButton: focus?.matches('.linked-context button') === true,
+    focusIsAttentionButton: focus?.matches('.attention-list .source-row') === true,
+    linkedButtonPresent: Boolean(document.querySelector('.linked-context button')),
+    sourceInspectorPresent: Boolean(document.querySelector('.source-inspector')),
+    attentionListPresent: Boolean(document.querySelector('.attention-list')),
+    attentionDetailPresent: Boolean(document.querySelector('.attention-detail')),
+    draftButtonPresent: Boolean(document.querySelector('.attention-detail button.primary')),
+    selectedPressedCount: document.querySelectorAll('.attention-list [aria-pressed="true"]').length,
+    expectedSyntheticAttentionSelected: document.querySelector('.attention-list [aria-pressed="true"] code')?.textContent === 'attention:evidence-diff:page-title',
+  };
+})()`)
     } catch {
       // An unavailable diagnostic must never make the underlying test pass.
     }
