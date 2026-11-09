@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { extname, join, resolve, sep } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { formatLinkedAttentionDiagnostic } from './linked-attention-diagnostic.mjs'
+import { formatReportWalkthroughDiagnostic } from './report-walkthrough-diagnostic.mjs'
 
 const root = resolve('dist')
 const mime = {
@@ -285,7 +286,38 @@ async function reportCaseDraftDiscardProof(cdp, url) {
   await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...arrow })
   // Headless Chrome updates the focused <select> without the change event React listens for.
   await cdp.evaluate('(() => { const select = document.activeElement; if (!select || select.tagName !== "SELECT") return; const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set; set.call(select, "decision-outcome"); select.dispatchEvent(new Event("input", { bubbles: true })); select.dispatchEvent(new Event("change", { bubbles: true })); })()')
-  await waitFor(() => cdp.evaluate('document.querySelector(".report-paper h3")?.textContent === "Harbor Demo — Decision and Outcome Report" && ![...document.querySelectorAll(".fixture-picker button")].some(button => button.getAttribute("aria-pressed") === "true")'), 'report walkthrough opened the outcome snapshot')
+  try {
+    await waitFor(() => cdp.evaluate('document.querySelector(".report-paper h3")?.textContent === "Harbor Demo — Decision and Outcome Report" && ![...document.querySelectorAll(".fixture-picker button")].some(button => button.getAttribute("aria-pressed") === "true")'), 'report walkthrough opened the outcome snapshot')
+  } catch (error) {
+    // Failure-only, bounded diagnostic. Preserve the real keyboard transition
+    // and the original 12s timeout; never change a failed test into PASS.
+    if (!(error instanceof Error) || error.message !== 'Timed out: report walkthrough opened the outcome snapshot') throw error
+    let snapshot = null
+    try {
+      snapshot = await cdp.evaluate(`(() => {
+  const select = document.querySelector('.report-heading select')
+  const focused = document.activeElement
+  const heading = document.querySelector('.report-paper h3')
+  const pressed = [...document.querySelectorAll('.fixture-picker button[aria-pressed="true"]')]
+  return {
+    selectedReportCase: select?.value ?? 'unknown',
+    focusTag: focused?.tagName ?? 'OTHER',
+    focusIsReportSelect: focused === select,
+    reportViewPresent: Boolean(document.querySelector('.report-view')),
+    reportPaperPresent: Boolean(document.querySelector('.report-paper')),
+    reportTitleMatchesExpected: heading?.textContent === 'Harbor Demo — Decision and Outcome Report',
+    reportErrorPresent: Boolean(document.querySelector('.report-view .error-state[role="alert"]')),
+    reportLoadingPresent: Boolean(document.querySelector('.report-view .error-state[role="status"]')),
+    reportOutcomeFixturePressed: pressed.some((button) => button.textContent?.trim() === 'Report outcome'),
+    fixturePressedCount: pressed.length,
+    viewport: window.innerWidth,
+  }
+})()`)
+    } catch {
+      // Browser state may be unavailable; the original timeout still fails.
+    }
+    throw new Error(error.message + '; ' + formatReportWalkthroughDiagnostic(snapshot), { cause: error })
+  }
   await pressNav('Decision')
   const cleared = await cdp.evaluate('(() => { const view = document.querySelector(".decision-view"); return { noSelection: view?.textContent.includes("There is no selected review context"), rationale: view?.querySelector("textarea")?.value ?? null, oldText: view?.textContent.includes(' + JSON.stringify(rationale) + ') }; })()')
   assert.deepEqual(cleared, { noSelection: true, rationale: null, oldText: false })
